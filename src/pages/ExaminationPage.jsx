@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   FileText,
   CalendarDays,
@@ -42,7 +42,7 @@ const cardVariants = {
 function AdmitCardSection({ admitCard = {} }) {
   const { t } = useLanguage();
   return (
-    <MainCard variants={cardVariants} className="h-full">
+    <MainCard variants={cardVariants}>
       <div className="p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -111,7 +111,7 @@ function AdmitCardSection({ admitCard = {} }) {
 function ScheduleSection({ schedule = [] }) {
   const { t } = useLanguage();
   return (
-    <MainCard variants={cardVariants} className="h-full">
+    <MainCard variants={cardVariants}>
       <div className="p-5">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2.5 rounded-2xl" style={{ backgroundColor: LIME }}>
@@ -132,7 +132,7 @@ function ScheduleSection({ schedule = [] }) {
               initial={{ opacity: 0, x: -12 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.06, duration: 0.3 }}
-              className="flex items-center gap-3 rounded-xl px-4 py-3"
+              className="flex items-center gap-3 rounded-xl px-4 py-2.5"
               style={{
                 backgroundColor: i % 2 === 0 ? LIME : "white",
                 outline: i % 2 !== 0 ? `1px solid ${LIME}` : "none",
@@ -183,9 +183,77 @@ function ScheduleSection({ schedule = [] }) {
 
 function ResultsSection({ results }) {
   const { t } = useLanguage();
+  const [activeTab, setActiveTab] = useState("term");
+
+  const grouped = React.useMemo(() => {
+    const termExams = [];
+    const unitTests = [];
+
+    (results || []).forEach((r) => {
+      const category = r.category || (
+        r.examName?.toLowerCase().includes("unit") || 
+        r.examName?.toLowerCase().includes("periodic") || 
+        r.examName?.toLowerCase().includes("assessment") || 
+        r.examName?.toLowerCase().includes("evaluation")
+          ? "UNIT_TEST"
+          : "TERM"
+      );
+
+      if (category === "UNIT_TEST") {
+        unitTests.push(r);
+      } else {
+        termExams.push(r);
+      }
+    });
+
+    return { termExams, unitTests };
+  }, [results]);
+
+  const activeData = activeTab === "term" ? grouped.termExams : grouped.unitTests;
+
+  const renderResultCard = (r) => (
+    <div
+      key={r.id}
+      className="rounded-2xl px-4 py-3 flex items-center justify-between group hover:bg-white transition-all shadow-sm border border-transparent hover:border-[#caf0f8]"
+      style={{ backgroundColor: LIME + "30" }}
+    >
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-black" style={{ color: NAVY }}>
+            {r.subjectName}
+          </p>
+          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white text-[#00b4d8] border border-[#caf0f8]">
+            {r.examName}
+          </span>
+        </div>
+        <p className="text-[11px] text-gray-500 mt-0.5 italic">"{r.remarks}"</p>
+      </div>
+      
+      <div className="flex flex-col items-end gap-1 ml-4">
+        <div className="text-base font-black" style={{ color: NAVY }}>
+          {r.marksObtained}<span className="text-[9px] text-gray-400 font-bold ml-0.5">/{r.maxMarks}</span>
+        </div>
+        <div 
+          className="text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider"
+          style={{ 
+            backgroundColor: r.grade === 'A+' || r.grade === 'A' ? '#d8f3dc' : '#fee2e2',
+            color: r.grade === 'A+' || r.grade === 'A' ? '#2d6a4f' : '#991b1b'
+          }}
+        >
+          Grade {r.grade}
+        </div>
+      </div>
+    </div>
+  );
+
+  const tabs = [
+    { id: "term", label: t("exam.termExams"), icon: Award, data: grouped.termExams, color: TEAL },
+    { id: "unit", label: t("exam.unitTests"), icon: ClipboardList, data: grouped.unitTests, color: SAGE }
+  ];
+
   return (
-    <MainCard variants={cardVariants} className="h-full">
-      <div className="p-5">
+    <MainCard variants={cardVariants}>
+      <div className="p-5 pb-0">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2.5 rounded-2xl" style={{ backgroundColor: LIME }}>
             <Award size={26} style={{ color: SAGE }} aria-hidden="true" />
@@ -214,44 +282,77 @@ function ResultsSection({ results }) {
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            {results.map((r) => (
-              <div
-                key={r.id}
-                className="rounded-2xl px-4 py-4 flex items-center justify-between group hover:bg-white transition-all shadow-sm border border-transparent hover:border-[#caf0f8]"
-                style={{ backgroundColor: LIME + "50" }}
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-black" style={{ color: NAVY }}>
-                      {r.subjectName}
-                    </p>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-[#00b4d8]">
-                      {r.examName}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1 italic">"{r.remarks}"</p>
-                </div>
-                
-                <div className="flex flex-col items-end gap-1 ml-4">
-                  <div className="text-xl font-black" style={{ color: NAVY }}>
-                    {r.marksObtained}<span className="text-[10px] text-gray-400 font-bold ml-0.5">/{r.maxMarks}</span>
-                  </div>
-                  <div 
-                    className="text-[10px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider"
-                    style={{ 
-                      backgroundColor: r.grade === 'A+' || r.grade === 'A' ? '#d8f3dc' : '#fee2e2',
-                      color: r.grade === 'A+' || r.grade === 'A' ? '#2d6a4f' : '#991b1b'
-                    }}
-                  >
-                    Grade {r.grade}
-                  </div>
-                </div>
-              </div>
-            ))}
+          /* Tabs */
+          <div
+            className="flex gap-1 border-b border-gray-100 mb-4"
+            role="tablist"
+            aria-label="Result categories"
+          >
+            {tabs.map((tab) => {
+              const isActive = activeTab === tab.id;
+              const TabIcon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls={`results-tabpanel-${tab.id}`}
+                  id={`results-tab-${tab.id}`}
+                  onClick={() => setActiveTab(tab.id)}
+                  className="relative flex items-center gap-1.5 px-4 py-2 text-xs font-black uppercase tracking-wider rounded-t-xl transition-all duration-150 focus:outline-none"
+                  style={
+                    isActive
+                      ? { color: tab.color, backgroundColor: tab.color + "12" }
+                      : { color: "#9ca3af" }
+                  }
+                >
+                  <TabIcon size={14} aria-hidden="true" />
+                  {tab.label}
+                  <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full ml-1" style={{ backgroundColor: isActive ? tab.color + "25" : "#f3f4f6", color: isActive ? tab.color : "#9ca3af" }}>
+                    {tab.data.length}
+                  </span>
+                  {isActive && (
+                    <motion.span
+                      layoutId="results-tab-underline"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full"
+                      style={{ backgroundColor: tab.color }}
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
+
+      {results.length > 0 && (
+        <div className="px-5 pb-5">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2 }}
+              role="tabpanel"
+              id={`results-tabpanel-${activeTab}`}
+              aria-labelledby={`results-tab-${activeTab}`}
+              className="flex flex-col gap-2"
+            >
+              {activeData.length === 0 ? (
+                <div className="flex flex-col items-center gap-2 py-6 text-center">
+                  <p className="text-xs font-bold text-gray-400">
+                    No results listed under this section
+                  </p>
+                </div>
+              ) : (
+                activeData.map(renderResultCard)
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      )}
     </MainCard>
   );
 }
@@ -299,7 +400,7 @@ function AcademicAlertsSection({ analytics }) {
 function InstructionsSection({ instructions }) {
   const { t } = useLanguage();
   return (
-    <MainCard variants={cardVariants} className="h-full">
+    <MainCard variants={cardVariants}>
       <div className="p-5">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2.5 rounded-2xl" style={{ backgroundColor: LIME }}>

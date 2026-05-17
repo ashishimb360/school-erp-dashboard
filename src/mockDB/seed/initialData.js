@@ -341,8 +341,8 @@ export const seedData = (db) => {
 
   // 9. Define Exams
   db.exams = [
-    { id: 'exam-hy-2025', name: 'Half-Yearly Examination 2025', type: 'TERM', startDate: '2025-07-18', endDate: '2025-07-28' },
-    { id: 'exam-ut-1', name: 'Unit Test 1', type: 'UNIT', startDate: '2025-05-10', endDate: '2025-05-15' }
+    { id: 'exam-hy-2025', name: 'Half-Yearly Examination 2025', type: 'TERM', category: 'TERM', startDate: '2025-07-18', endDate: '2025-07-28' },
+    { id: 'exam-ut-1', name: 'Unit Test 1', type: 'UNIT', category: 'UNIT_TEST', startDate: '2025-05-10', endDate: '2025-05-15' }
   ];
 
   // 10. Define Results (Dynamic Subject-aligned Gradebook for UT-1 & Half-Yearly)
@@ -675,61 +675,122 @@ export const seedData = (db) => {
     });
   });
 
-  // 18. Define Invoices & Receipts (Seeded dynamically from db.fees for math accuracy)
+  // 18. Define Invoices & Receipts (Seeded dynamically from db.fees for math accuracy and vacation awareness)
   db.invoices = [];
   db.receipts = [];
 
   db.fees.forEach((fee) => {
     const sId = fee.studentId;
-    const admissionYear = sId === 'stud-006' || sId === 'stud-007' || sId === 'stud-008' || sId === 'stud-009' || sId === 'stud-010' ? '2023' : '2024';
-    
-    const term1Amt = Math.round(fee.totalAmount * 0.45);
-    const term2Amt = Math.round(fee.totalAmount * 0.45);
-    const transportAmt = Math.round(fee.totalAmount * 0.06);
-    const miscAmt = fee.totalAmount - term1Amt - term2Amt - transportAmt;
+    const studNumber = sId.split('-')[1];
 
-    const invoices = [
-      { id: `INV-${sId}-1`, studentId: sId, invoiceNo: `BL-${admissionYear}-001`, amount: term1Amt, dueDate: `${admissionYear}-07-15`, status: 'Paid', category: 'academic', targetLabel: 'Term 1 Fee' },
-      { id: `INV-${sId}-2`, studentId: sId, invoiceNo: `BL-${admissionYear}-002`, amount: transportAmt, dueDate: `${admissionYear}-08-15`, status: 'Paid', category: 'transport', targetLabel: 'Transport Fee' },
-      { id: `INV-${sId}-3`, studentId: sId, invoiceNo: `BL-${admissionYear}-003`, amount: miscAmt, dueDate: `${admissionYear}-09-15`, status: 'Paid', category: 'miscellaneous', targetLabel: 'Clubs & Activities Fee' },
-      { id: `INV-${sId}-4`, studentId: sId, invoiceNo: `BL-2025-004`, amount: term2Amt, dueDate: '2025-01-15', status: 'Unpaid', category: 'academic', targetLabel: 'Term 2 Fee' }
+    const billingCycles = [
+      { idSuffix: "1", billingMonth: "April 2025", dueDate: "2025-04-15", isVacation: false, vacationType: null },
+      { idSuffix: "2", billingMonth: "May 2025", dueDate: "2025-05-15", isVacation: false, vacationType: null },
+      { idSuffix: "3", billingMonth: "June 2025", dueDate: "2025-06-15", isVacation: true, vacationType: "SUMMER" },
+      { idSuffix: "4", billingMonth: "July 2025", dueDate: "2025-07-15", isVacation: false, vacationType: null },
+      { idSuffix: "5", billingMonth: "August 2025", dueDate: "2025-08-15", isVacation: false, vacationType: null },
+      { idSuffix: "6", billingMonth: "September 2025", dueDate: "2025-09-15", isVacation: false, vacationType: null },
+      { idSuffix: "7", billingMonth: "October 2025", dueDate: "2025-10-15", isVacation: false, vacationType: null },
+      { idSuffix: "8", billingMonth: "November 2025", dueDate: "2025-11-15", isVacation: false, vacationType: null },
+      { idSuffix: "9", billingMonth: "December 2025", dueDate: "2025-12-15", isVacation: false, vacationType: null },
+      { idSuffix: "10", billingMonth: "January 2026", dueDate: "2026-01-15", isVacation: true, vacationType: "WINTER" },
+      { idSuffix: "11", billingMonth: "February 2026", dueDate: "2026-02-15", isVacation: false, vacationType: null },
+      { idSuffix: "12", billingMonth: "March 2026", dueDate: "2026-03-15", isVacation: false, vacationType: null }
     ];
 
+    const baseMonthly = Math.round(fee.totalAmount / 12);
     let remainingPaid = fee.paidAmount;
 
-    invoices.forEach((inv, invIdx) => {
-      if (remainingPaid >= inv.amount) {
-        inv.status = 'Paid';
-        db.receipts.push({
-          id: `RCP-${sId}-${invIdx + 1}`,
-          invoiceId: inv.id,
-          studentId: sId,
-          amount: inv.amount,
-          date: inv.dueDate,
-          mode: 'Online',
-          targetLabel: inv.targetLabel,
-          transactionId: `TXN${sId.split('-')[1]}${invIdx}48A2`
-        });
-        remainingPaid -= inv.amount;
-      } else if (remainingPaid > 0) {
-        inv.status = 'Partially Paid';
-        db.receipts.push({
-          id: `RCP-${sId}-${invIdx + 1}`,
-          invoiceId: inv.id,
-          studentId: sId,
-          amount: remainingPaid,
-          date: '2025-02-15',
-          mode: remainingPaid > 2000 ? 'Online' : 'Cash',
-          targetLabel: inv.targetLabel,
-          transactionId: `TXN${sId.split('-')[1]}${invIdx}91B7`
-        });
-        remainingPaid = 0;
-      } else {
-        inv.status = 'Unpaid';
-      }
-    });
+    billingCycles.forEach((cycle, idx) => {
+      let tuition = Math.round(baseMonthly * 0.60);
+      let transport = Math.round(baseMonthly * 0.15);
+      let lab = Math.round(baseMonthly * 0.10);
+      let activity = Math.round(baseMonthly * 0.08);
+      let tech = baseMonthly - tuition - transport - lab - activity;
 
-    db.invoices.push(...invoices);
+      // Apply Vacation Adjustments
+      const isSummer = cycle.vacationType === "SUMMER";
+      const isWinter = cycle.vacationType === "WINTER";
+
+      if (isSummer) {
+        transport = 0; // Removed for Summer Vacation
+        activity = 0;  // Removed for Summer Vacation
+        tech = Math.round(baseMonthly * 0.07);
+      } else if (isWinter) {
+        transport = Math.round(transport * 0.5); // Reduced by 50% for Winter Vacation
+        activity = Math.round(activity * 0.5);  // Reduced by 50% for Winter Vacation
+        tech = Math.round(baseMonthly * 0.07);
+      }
+
+      const monthlyAmount = tuition + transport + lab + activity + tech;
+      const isPast = idx < 4; // April, May, June, July are active/past months
+      let status = "Upcoming";
+      let paidAmt = 0;
+      let rcpId = null;
+
+      if (isPast) {
+        if (remainingPaid >= monthlyAmount) {
+          status = "Paid";
+          paidAmt = monthlyAmount;
+          remainingPaid -= monthlyAmount;
+          rcpId = `RCP-${sId}-${cycle.idSuffix}`;
+          db.receipts.push({
+            id: rcpId,
+            invoiceId: `INV-${sId}-${cycle.idSuffix}`,
+            studentId: sId,
+            amount: monthlyAmount,
+            date: cycle.dueDate,
+            mode: 'Online',
+            targetLabel: `${cycle.billingMonth} Invoice`,
+            receiptNo: `REC-2025-${cycle.idSuffix}-${studNumber}`,
+            transactionId: `TXN${studNumber}${idx}48A2`
+          });
+        } else if (remainingPaid > 0) {
+          status = "Pending";
+          paidAmt = remainingPaid;
+          rcpId = `RCP-${sId}-${cycle.idSuffix}`;
+          db.receipts.push({
+            id: rcpId,
+            invoiceId: `INV-${sId}-${cycle.idSuffix}`,
+            studentId: sId,
+            amount: remainingPaid,
+            date: '2025-05-10',
+            mode: 'Online',
+            targetLabel: `${cycle.billingMonth} Invoice`,
+            receiptNo: `REC-2025-${cycle.idSuffix}-${studNumber}`,
+            transactionId: `TXN${studNumber}${idx}91B7`
+          });
+          remainingPaid = 0;
+        } else {
+          status = "Overdue";
+        }
+      } else {
+        status = "Upcoming";
+      }
+
+      db.invoices.push({
+        id: `INV-${sId}-${cycle.idSuffix}`,
+        studentId: sId,
+        invoiceNo: `BL-2025-${cycle.idSuffix}-${studNumber}`,
+        billingMonth: cycle.billingMonth,
+        amount: monthlyAmount,
+        paidAmount: paidAmt,
+        remainingAmount: monthlyAmount - paidAmt,
+        dueDate: cycle.dueDate,
+        status: status,
+        targetLabel: `${cycle.billingMonth} Invoice`,
+        receiptId: rcpId,
+        isVacationMonth: cycle.isVacation,
+        vacationType: cycle.vacationType,
+        lineItems: [
+          { label: "Tuition Fee", amount: tuition },
+          { label: "Transport Fee", amount: transport },
+          { label: "Laboratory Fee", amount: lab },
+          { label: "Activity Fee", amount: activity },
+          { label: "Technology Fee", amount: tech }
+        ]
+      });
+    });
   });
 
   // 20. Define Notices

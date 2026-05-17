@@ -86,7 +86,8 @@ export const getStudentResults = async (studentId) => {
     return {
       ...res,
       subjectName: subject?.name,
-      examName: exam?.name
+      examName: exam?.name,
+      category: exam?.category
     };
   }));
 };
