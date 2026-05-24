@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, ChevronDown, Menu, GraduationCap, User, LogOut } from "lucide-react";
+import { Bell, ChevronDown, Menu, GraduationCap, User, LogOut, RotateCcw } from "lucide-react";
 import { formatDate } from "../utils/attendanceHelpers";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { useStudent } from "../context/StudentContext";
 import ChildScopeSwitcher from "./parent/ChildScopeSwitcher";
 import { ROLES } from "../auth/roles";
+import { resetDemoData } from "../persistence/resetDemoData";
 
 const NotificationBadge = React.memo(function NotificationBadge({ count }) {
   if (count <= 0) return null;
@@ -123,7 +124,7 @@ const ProfileDropdown = React.memo(function ProfileDropdown({ student, t, onNavi
             {student?.name || student?.fullName || t("common.student")}
           </p>
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-            {student?.enrollmentNumber || student?.admissionNo || "Student"}
+            {student?.admissionNumber || student?.admissionNo || "Student"}
           </p>
         </div>
       </div>
@@ -156,7 +157,7 @@ const Header = React.memo(function Header({ student, notifications = [], current
   const { role, logout, isParent } = useAuth();
   const { activeStudent } = useStudent();
   
-  const displayStudent = isParent ? activeStudent : student;
+  const displayStudent = student; // Always show the logged-in user in profile dropdown
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const displayDate = currentDate || formatDate(new Date(), lang);
@@ -226,6 +227,27 @@ const Header = React.memo(function Header({ student, notifications = [], current
           {role === ROLES.PARENT && (
             <LanguageToggle lang={lang} setLang={setLang} />
           )}
+
+          {/* Reset Demo Data Button */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 20 }}
+            onClick={() => {
+              if (window.confirm("Are you sure you want to reset all ERP demo data? This will restore all default seed collections.")) {
+                resetDemoData();
+              }
+            }}
+            className="flex items-center gap-1.5 rounded-xl border px-3 py-1.5 transition-colors text-xs font-black shadow-sm"
+            style={{
+              backgroundColor: "#caf0f8",
+              borderColor: "#00b4d8",
+              color: "#03045e",
+            }}
+          >
+            <RotateCcw size={15} className="transition-transform duration-500" />
+            <span className="hidden sm:inline">RESET ERP</span>
+          </motion.button>
 
           {/* Notification bell */}
           <div className="relative">

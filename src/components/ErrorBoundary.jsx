@@ -1,5 +1,6 @@
 import React from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import { removeItem } from "../persistence/storage";
 
 export class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -14,13 +15,17 @@ export class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     // You can also log the error to an analytics reporting service here
-    console.error("EduDash ERP Runtime Error caught by boundary:", error, errorInfo);
+    console.error(
+      "EduDash ERP Runtime Error caught by boundary:",
+      error,
+      errorInfo,
+    );
   }
 
   handleReset = () => {
     // Clear caches and reset error state to recover
     try {
-      localStorage.removeItem("edudash_state");
+      removeItem("edudash_state");
       sessionStorage.clear();
     } catch (e) {
       console.warn("Could not clear session storage in ErrorBoundary", e);
@@ -41,13 +46,14 @@ export class ErrorBoundary extends React.Component {
           <div className="p-4 rounded-full bg-red-50 text-[#EF4444] mb-4">
             <AlertTriangle size={48} className="animate-bounce" />
           </div>
-          
+
           <h2 className="text-xl font-extrabold text-[#03045e] mb-2">
             Portal Rendering Stabilized
           </h2>
-          
+
           <p className="text-sm font-semibold text-gray-500 max-w-md mb-6 leading-relaxed">
-            EduDash detected a transient rendering or cache hydration freeze. Click below to instantly recover and reload your section.
+            EduDash detected a transient rendering or cache hydration freeze.
+            Click below to instantly recover and reload your section.
           </p>
 
           <button
@@ -57,7 +63,11 @@ export class ErrorBoundary extends React.Component {
               background: "linear-gradient(135deg, #0077b6, #00b4d8)",
             }}
           >
-            <RefreshCw size={18} className="animate-spin" style={{ animationDuration: '3s' }} />
+            <RefreshCw
+              size={18}
+              className="animate-spin"
+              style={{ animationDuration: "3s" }}
+            />
             Recover Section
           </button>
 

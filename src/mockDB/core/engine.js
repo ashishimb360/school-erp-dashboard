@@ -3,11 +3,10 @@
  * 
  * A lightweight query engine that simulates relational database operations
  * on top of plain JS objects. Designed to be swapped with a real API later.
+ * 
+ * Performance Note: Simulated network latency has been removed to optimize
+ * local storage transitions. All async queries now resolve immediately.
  */
-
-const LATENCY = 400; // Simulate 400ms network latency
-
-const simulateLatency = () => new Promise(resolve => setTimeout(resolve, LATENCY));
 
 export const engine = {
   /**
@@ -16,7 +15,6 @@ export const engine = {
    * @param {Object} query - Key-value filters
    */
   where: async (collection, query) => {
-    await simulateLatency();
     return collection.filter(item => {
       for (let key in query) {
         if (item[key] !== query[key]) return false;
@@ -29,7 +27,6 @@ export const engine = {
    * Find a single record
    */
   findOne: async (collection, query) => {
-    await simulateLatency();
     return collection.find(item => {
       for (let key in query) {
         if (item[key] !== query[key]) return false;
@@ -42,7 +39,6 @@ export const engine = {
    * Find by Primary Key
    */
   findById: async (collection, id) => {
-    await simulateLatency();
     return collection.find(item => item.id === id) || null;
   },
 
@@ -66,3 +62,4 @@ export const engine = {
     return targetCollection.filter(t => t[foreignKey] === item[localKey]);
   }
 };
+

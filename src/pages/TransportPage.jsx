@@ -60,16 +60,17 @@ function MetaRow({ label, value, valueClass = "" }) {
 }
 
 export default function TransportPage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { activeStudentId } = useStudent();
   const [showHelper, setShowHelper] = useState(false);
+  const [showAlertsModal, setShowAlertsModal] = useState(false);
 
   const { data: summary, loading: sLoading } = useService(getTransportSummary, [activeStudentId], [activeStudentId]);
   const { data: vehicle, loading: vLoading } = useService(getVehicleDetails, [activeStudentId], [activeStudentId]);
   const { data: personnel, loading: pLoading } = useService(getPersonnelInfo, [activeStudentId], [activeStudentId]);
   const { data: route, loading: rLoading } = useService(getRouteTimeline, [activeStudentId], [activeStudentId]);
-  const { data: notices, loading: nLoading } = useService(getTransportNotices, [activeStudentId], [activeStudentId]);
-  const { data: guidelines, loading: gLoading } = useService(getSafetyGuidelines, [activeStudentId], [activeStudentId]);
+  const { data: notices, loading: nLoading } = useService(getTransportNotices, [activeStudentId, lang], [activeStudentId, lang]);
+  const { data: guidelines, loading: gLoading } = useService(getSafetyGuidelines, [activeStudentId, lang], [activeStudentId, lang]);
 
   const loading = sLoading || vLoading || pLoading || rLoading || nLoading || gLoading;
 
@@ -119,7 +120,9 @@ export default function TransportPage() {
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest text-[#00b4d8] mb-1">
-                    Designated Express Route
+                    {summary?.activeDirection === "DROP_ROUTE"
+                      ? (lang === "hi" ? "वापसी मार्ग • स्कूल से प्रस्थान" : "Return Drop Route • Heading Home")
+                      : (lang === "hi" ? "प्रस्थान मार्ग • स्कूल की ओर" : "Morning Pickup Route • Heading to School")}
                   </p>
                   <h2 className="text-4xl font-black leading-none" style={{ color: NAVY }}>
                     {summary?.routeNo}
@@ -128,7 +131,9 @@ export default function TransportPage() {
                 <div className="flex gap-6">
                   <div className="text-right">
                     <p className="text-[9px] font-black uppercase tracking-wide text-gray-400 mb-1">
-                      {t("transport.pickup") || "Pickup Stop"}
+                      {summary?.activeDirection === "DROP_ROUTE"
+                        ? (lang === "hi" ? "ड्रॉप स्टॉप" : "Drop Stop")
+                        : (t("transport.pickup") || "Pickup Stop")}
                     </p>
                     <p className="text-sm font-bold" style={{ color: NAVY }}>
                       {summary?.pickupStop}
@@ -136,7 +141,9 @@ export default function TransportPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-[9px] font-black uppercase tracking-wide text-gray-400 mb-1">
-                      {t("transport.departure") || "Pickup Time"}
+                      {summary?.activeDirection === "DROP_ROUTE"
+                        ? (lang === "hi" ? "ड्रॉप समय" : "Drop Time")
+                        : (t("transport.departure") || "Pickup Time")}
                     </p>
                     <p className="text-sm font-bold" style={{ color: NAVY }}>
                       {summary?.pickupTime}
@@ -247,12 +254,26 @@ export default function TransportPage() {
               icon={<Map size={16} />}
               title={t("transport.timeline") || "Route Timeline"}
               aside={
-                <span
-                  className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg"
-                  style={{ backgroundColor: LIME, color: TEAL }}
-                >
-                  ETA 08:10 AM
-                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg border"
+                    style={{
+                      backgroundColor: summary?.activeDirection === "DROP_ROUTE" ? "#fee2e2" : "#dcfce7",
+                      color: summary?.activeDirection === "DROP_ROUTE" ? "#991b1b" : "#166534",
+                      borderColor: summary?.activeDirection === "DROP_ROUTE" ? "#fca5a5" : "#86efac"
+                    }}
+                  >
+                    {summary?.activeDirection === "DROP_ROUTE"
+                      ? (lang === "hi" ? "वापसी मार्ग (दोपहर)" : "Return Drop Route")
+                      : (lang === "hi" ? "प्रस्थान मार्ग (सुबह)" : "Morning Pickup Route")}
+                  </span>
+                  <span
+                    className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-lg"
+                    style={{ backgroundColor: LIME, color: TEAL }}
+                  >
+                    ETA {routeList[routeList.length - 1]?.time || "08:10 AM"}
+                  </span>
+                </div>
               }
             />
             <MainCard borderColor={TEAL} className="p-6 h-[calc(100%-3.25rem)] flex flex-col justify-center">
@@ -331,7 +352,7 @@ export default function TransportPage() {
                   </h4>
                   <p className="text-xs text-gray-400 font-bold flex items-center gap-1 mt-0.5">
                     <Zap size={10} className="text-emerald-500" />
-                    4.8 Rating • Morning Shift
+                    {personnel?.driver?.rating || "4.8"} Rating • {personnel?.driver?.shift || "Morning Shift"}
                   </p>
                 </div>
               </div>
@@ -417,6 +438,7 @@ export default function TransportPage() {
                 ))}
               </div>
               <button
+                onClick={() => setShowAlertsModal(true)}
                 className="w-full mt-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-colors hover:opacity-90"
                 style={{ backgroundColor: LIME, color: TEAL }}
               >
@@ -434,6 +456,95 @@ export default function TransportPage() {
         contentEn="The Student Transport dashboard provides real-time information regarding your assigned route, vehicle, and personnel."
         contentHi="छात्र परिवहन डैशबोर्ड आपके असाइन किए गए मार्ग, वाहन और कर्मियों के संबंध में वास्तविक समय की जानकारी प्रदान करता है।"
       />
+
+      {showAlertsModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300"
+          onClick={() => setShowAlertsModal(false)}
+        >
+          <div 
+            className="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 flex flex-col max-h-[85vh] scale-100 transition-all duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 text-white flex items-center justify-between" style={{ backgroundColor: NAVY }}>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
+                  <AlertCircle size={18} className="text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black leading-tight">
+                    {lang === "hi" ? "परिवहन अलर्ट इतिहास" : "Transport Alert History"}
+                  </h3>
+                  <p className="text-xs text-white/70 font-semibold mt-0.5">
+                    {summary?.routeNo} • {summary?.activeDirection === "DROP_ROUTE" ? (lang === "hi" ? "वापसी मार्ग" : "Return Drop") : (lang === "hi" ? "प्रस्थान मार्ग" : "Morning Pickup")}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowAlertsModal(false)}
+                className="text-white/60 hover:text-white text-xs font-black uppercase tracking-widest bg-white/10 hover:bg-white/20 px-3.5 py-1.5 rounded-xl transition-all"
+              >
+                {lang === "hi" ? "बंद करें" : "Close"}
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {notices && notices.length > 0 ? (
+                notices.map((n) => (
+                  <div 
+                    key={n.id}
+                    className="p-4 rounded-2xl border flex gap-3.5 items-start bg-[#f8fafc] border-gray-100"
+                  >
+                    <div 
+                      className={`w-3.5 h-3.5 rounded-full mt-1 flex-shrink-0 ${
+                        n.priority === "high" ? "bg-red-500 animate-pulse" : "bg-[#00b4d8]"
+                      }`}
+                    />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-black" style={{ color: NAVY }}>
+                          {n.title}
+                        </h4>
+                        <span 
+                          className="text-[8px] font-black uppercase px-2 py-0.5 rounded-full"
+                          style={{
+                            backgroundColor: n.priority === "high" ? "#fee2e2" : "#e0f2fe",
+                            color: n.priority === "high" ? "#991b1b" : "#0369a1"
+                          }}
+                        >
+                          {n.priority === "high" ? (lang === "hi" ? "गंभीर" : "Critical") : (lang === "hi" ? "सामान्य" : "Normal")}
+                        </span>
+                      </div>
+                      <p className="text-xs font-semibold text-gray-500 mt-1.5 leading-relaxed">
+                        {n.message}
+                      </p>
+                      <p className="text-[9px] font-black text-gray-400 mt-2 uppercase tracking-wide">
+                        {lang === "hi" ? "सक्रिय अलर्ट" : "Active Alert"} • {summary?.vehicleNo}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="py-12 text-center">
+                  <AlertCircle size={40} className="mx-auto text-gray-300 mb-3" />
+                  <p className="text-sm font-bold text-gray-400">
+                    {lang === "hi" ? "इस मार्ग के लिए कोई सक्रिय अलर्ट नहीं हैं।" : "No active alerts for this route."}
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            <div className="p-5 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+              <span className="text-[9px] font-black uppercase tracking-wider text-gray-400">
+                System Status: Active & Operational
+              </span>
+              <span className="inline-flex items-center gap-1 text-[9px] font-black text-emerald-600 uppercase tracking-widest">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" /> GPS Live
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

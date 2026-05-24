@@ -1,65 +1,218 @@
-import React from "react";
-import TeacherModuleHeader from "../../components/teacher/TeacherModuleHeader";
-import MainCard from "../../components/MainCard";
-import { 
-  CheckSquare, 
-  ClipboardList, 
-  FileEdit, 
-  Users, 
-  BarChart2, 
-  MessageSquare 
-} from "lucide-react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import TeacherIdentityCard from "../../components/teacherHome/TeacherIdentityCard";
+import MyClassPanel from "../../components/teacherHome/MyClassPanel";
+import MyTeachingSchedule from "../../components/teacherHome/MyTeachingSchedule";
+import MyClassSchedule from "../../components/teacherHome/MyClassSchedule";
+import TeacherActionCenter from "../../components/teacherHome/TeacherActionCenter";
+import QuickActionsPanel from "../../components/teacherHome/QuickActionsPanel";
+import NoticeBoard from "../../components/NoticeBoard";
+import { teacherDashboardService } from "../../services/teacherDashboardService";
+import { useAuth } from "../../context/AuthContext";
+import { motion } from "framer-motion";
+
+// Progressive Loading Skeletons
+import DashboardCardSkeleton from "../../components/common/skeletons/DashboardCardSkeleton";
+import ScheduleSkeleton from "../../components/common/skeletons/ScheduleSkeleton";
+import ActionCenterSkeleton from "../../components/common/skeletons/ActionCenterSkeleton";
+
+// Isolate Widget Render Trees to prevent full-page rerender cascades
+const MemoizedTeacherIdentityCard = React.memo(TeacherIdentityCard);
+const MemoizedMyClassPanel = React.memo(MyClassPanel);
+const MemoizedMyTeachingSchedule = React.memo(MyTeachingSchedule);
+const MemoizedMyClassSchedule = React.memo(MyClassSchedule);
+const MemoizedTeacherActionCenter = React.memo(TeacherActionCenter);
+const MemoizedQuickActionsPanel = React.memo(QuickActionsPanel);
 
 /**
  * TeacherDashboard
- * 
- * The operational command center for teachers.
+ *
+ * Deeply optimized Daily Operational Workspace.
+ * Custom built for Class Teacher vs Subject Teacher workflows.
  */
 const TeacherDashboard = () => {
-  const stats = [
-    { label: "Today's Classes", value: "4", icon: ClipboardList, color: "#00b4d8" },
-    { label: "Attendance Marked", value: "2/4", icon: CheckSquare, color: "#059669" },
-    { label: "Pending Gradings", value: "12", icon: FileEdit, color: "#D97706" },
-    { label: "Student Alerts", value: "3", icon: Users, color: "#DC2626" },
-  ];
+  const { user } = useAuth();
+  const teacherId = user?.linkedEntityId || "teach-001";
+
+  // ── Isolated Local States ──
+  const [identity, setIdentity] = useState(null);
+  const [teachingSchedule, setTeachingSchedule] = useState({
+    today: [],
+    currentClass: null,
+    nextClass: null,
+  });
+  const [classInfo, setClassInfo] = useState(null);
+  const [classSchedule, setClassSchedule] = useState({ today: [], weekly: [] });
+  const [actionItems, setActionItems] = useState([]);
+  const [notices, setNotices] = useState({ general: [], exam: [] });
+
+  // Loading States
+  const [loadingSchedule, setLoadingSchedule] = useState(true);
+  const [loadingDeferred, setLoadingDeferred] = useState(true);
+
+  // Error indicators
+  const [errorCritical, setErrorCritical] = useState("");
+  const [errorDeferred, setErrorDeferred] = useState("");
+
+  const fetchCriticalData = useCallback(
+    async (force = false) => {
+      setLoadingSchedule(true);
+      try {
+        const data =
+          await teacherDashboardService.getCriticalTeacherDashboardData(
+            teacherId,
+            force,
+          );
+        setIdentity(data.teacherIdentity);
+        setTeachingSchedule(
+          data.teachingSchedule || {
+            today: [],
+            currentClass: null,
+            nextClass: null,
+          },
+        );
+        setErrorCritical("");
+      } catch (e) {
+        console.error("Failed to load critical schedule timeline:", e);
+        setErrorCritical("Unable to retrieve today's teaching schedule.");
+      } finally {
+        setLoadingSchedule(false);
+      }
+    },
+    [teacherId],
+  );
+
+  const fetchDeferredData = useCallback(
+    async (force = false) => {
+      setLoadingDeferred(true);
+      try {
+        const data =
+          await teacherDashboardService.getDeferredTeacherDashboardData(
+            teacherId,
+            force,
+          );
+        setClassInfo(data.classInfo);
+        setClassSchedule(data.classSchedule || { today: [], weekly: [] });
+        setActionItems(data.actionItems || []);
+        setNotices(data.notices || { general: [], exam: [] });
+        setErrorDeferred("");
+      } catch (e) {
+        console.error("Failed to load deferred action lists:", e);
+        setErrorDeferred("Unable to sync class rosters.");
+      } finally {
+        setLoadingDeferred(false);
+      }
+    },
+    [teacherId],
+  );
+
+  useEffect(() => {
+    // 1. Fetch critical timeline schedule immediately
+    fetchCriticalData();
+
+    // 2. Defer heavy secondary aggregations to allow instantaneous layout paint
+    const timer = setTimeout(() => {
+      fetchDeferredData();
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [fetchCriticalData, fetchDeferredData]);
+
+  // Memoize homeroom/class teacher check to avoid recalcs
+  const isClassTeacher = useMemo(() => {
+    return !!identity?.isClassTeacher;
+  }, [identity]);
+
+  // Limit initial items count to 5 to reduce initial DOM footprint
+  const slicedActionItems = useMemo(() => {
+    return actionItems.slice(0, 5);
+  }, [actionItems]);
 
   return (
-    <div className="space-y-8 pb-12">
-      <TeacherModuleHeader 
-        titleKey="nav.teacher_home"
-        descriptionKey="Welcome to your operational dashboard. Track your classes and student performance."
-        helperContentEn="The Teacher Dashboard provides a high-level overview of your daily tasks, including class schedules, attendance status, and pending gradings."
-        helperContentHi="शिक्षक डैशबोर्ड आपके दैनिक कार्यों का एक उच्च-स्तरीय अवलोकन प्रदान करता है, जिसमें कक्षा कार्यक्रम, उपस्थिति की स्थिति और लंबित ग्रेडिंग शामिल हैं।"
-      />
+    <div className="space-y-6 pb-12">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+        className="space-y-6 animate-fade-in"
+      >
+        {/* SECTION 1 — IDENTITY PANEL */}
+        {loadingSchedule ? (
+          <DashboardCardSkeleton />
+        ) : errorCritical ? (
+          <div className="p-4 bg-rose-50 border border-rose-100 text-rose-700 text-xs font-bold rounded-2xl">
+            {errorCritical}
+          </div>
+        ) : (
+          identity && <MemoizedTeacherIdentityCard identity={identity} />
+        )}
 
-      {/* Analytics Summary Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, idx) => (
-          <MainCard key={idx} className="p-6 border-l-4" style={{ borderLeftColor: stat.color }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{stat.label}</p>
-                <p className="text-3xl font-black text-[#03045e]">{stat.value}</p>
+        {/* 2. Primary Workspace Layout (Schedule & Tasks Grid) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          {/* Left / Middle: Schedules & Class Operations */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* SECTION 2 — MY TEACHING SCHEDULE */}
+            {loadingSchedule ? (
+              <ScheduleSkeleton />
+            ) : errorCritical ? (
+              <div className="p-4 bg-rose-50 border border-rose-100 text-rose-700 text-xs font-bold rounded-2xl">
+                {errorCritical}
               </div>
-              <div className="p-3 rounded-2xl bg-[#caf0f8]/50 text-[#03045e]">
-                <stat.icon size={24} style={{ color: stat.color }} />
-              </div>
-            </div>
-          </MainCard>
-        ))}
-      </div>
+            ) : (
+              <MemoizedMyTeachingSchedule
+                schedule={teachingSchedule.today}
+                currentClass={teachingSchedule.currentClass}
+                nextClass={teachingSchedule.nextClass}
+              />
+            )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <MainCard className="lg:col-span-2 p-8 h-80 flex flex-col items-center justify-center border-2 border-dashed border-[#caf0f8]">
-          <BarChart2 size={48} className="text-gray-200 mb-4" />
-          <p className="text-gray-400 font-bold italic">Operational Overview Analytics (Coming Soon)</p>
-        </MainCard>
-        
-        <MainCard className="p-8 h-80 flex flex-col items-center justify-center border-2 border-dashed border-[#caf0f8]">
-          <MessageSquare size={48} className="text-gray-200 mb-4" />
-          <p className="text-gray-400 font-bold italic">Recent Communications (Coming Soon)</p>
-        </MainCard>
-      </div>
+            {/* SECTION 3 — MY CLASS PANEL (Only for Class Teachers) */}
+            {loadingDeferred
+              ? isClassTeacher && <DashboardCardSkeleton />
+              : errorDeferred
+                ? isClassTeacher && (
+                    <div className="p-4 bg-rose-50 border border-rose-100 text-rose-700 text-xs font-bold rounded-2xl">
+                      {errorDeferred}
+                    </div>
+                  )
+                : isClassTeacher &&
+                  classInfo && <MemoizedMyClassPanel classInfo={classInfo} />}
+
+            {/* SECTION 4 — MY CLASS SCHEDULE (Only for Class Teachers) */}
+            {loadingDeferred
+              ? isClassTeacher && <ScheduleSkeleton />
+              : isClassTeacher &&
+                classInfo && (
+                  <MemoizedMyClassSchedule
+                    classSchedule={classSchedule}
+                    className={identity?.className}
+                  />
+                )}
+
+            <MemoizedQuickActionsPanel />
+          </div>
+
+          {/* SECTION 5 — ACTION CENTER */}
+          <div className="lg:col-span-1 h-full">
+            {loadingDeferred ? (
+              <ActionCenterSkeleton />
+            ) : (
+              <MemoizedTeacherActionCenter actionItems={slicedActionItems} />
+            )}
+          </div>
+        </div>
+
+        {/* SECTION 6 — NOTICE BOARD */}
+        {loadingDeferred ? (
+          <ActionCenterSkeleton />
+        ) : (
+          <NoticeBoard
+            notices={notices.general || []}
+            examNotices={notices.exam || []}
+            classUpdates={[]}
+            index={0}
+          />
+        )}
+      </motion.div>
     </div>
   );
 };

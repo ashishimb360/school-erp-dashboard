@@ -10,6 +10,6 @@ describe("App", () => {
 
   it("shows portal select page instructions", () => {
     render(<App />);
-    expect(screen.getByText("Select your portal to continue")).toBeInTheDocument();
+    expect(screen.getByText(/Select a Role to Continue/i)).toBeInTheDocument();
   });
 });

@@ -23,6 +23,9 @@ export const db = {
   streams: [],
   transportRoutes: [],
   transportAssignments: [],
+  transportVehicles: [],
+  transportDrivers: [],
+  transportAlerts: [],
   documents: [],
   achievements: [],
   invoices: [],
@@ -30,5 +33,15 @@ export const db = {
   clubs: [],
   clubEnrollments: [],
   clubActivities: [],
-  clubCoordinators: []
+  clubCoordinators: [],
+  // Institutional Daily Attendance Workflow (new relational system)
+  dailyAttendance: [],
+  attendanceSessions: [],
+  leaveRequests: [],
+  mentorRemarks: [],
+  mentorAssignments: [],
+  mentorSessions: [],
+  classUpdates: [],
+  clubUpdates: [],
+  teacherSubjectAssignments: []
 };

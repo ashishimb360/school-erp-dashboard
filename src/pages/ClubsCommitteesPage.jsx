@@ -6,31 +6,31 @@ import {
   Cpu,
   Camera,
   Music,
-  Theater,
-  Leaf,
+  BookOpen,
   Calendar,
   Award,
   ChevronRight,
   Mail,
   Clock,
-  ExternalLink
+  ExternalLink,
+  PlusCircle,
+  MinusCircle,
+  AlertCircle
 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
-import { getStats, getJoinedClubs, getAvailableClubs, getUpcomingActivities, getCoordinators } from "../services/clubService";
-import { useService } from "../hooks/useService";
+import { clubsService } from "../services/clubsService";
 import { useStudent } from "../context/StudentContext";
 import MainCard from "../components/MainCard";
 import HelperButton from "../components/HelperButton";
 import HelperPopup from "../components/HelperPopup";
 
 const logoMap = {
-  code: Code,
-  mic: Mic,
   cpu: Cpu,
-  camera: Camera,
+  mic: Mic,
   music: Music,
-  theater: Theater,
-  leaf: Leaf,
+  camera: Camera,
+  code: Code,
+  "book-open": BookOpen
 };
 
 const NAVY = "#03045e";
@@ -39,21 +39,79 @@ export default function ClubsCommitteesPage() {
   const { t } = useLanguage();
   const [showHelper, setShowHelper] = useState(false);
   const [showAllActivities, setShowAllActivities] = useState(false);
-  const { activeStudentId } = useStudent();
+  const [studentClubs, setStudentClubs] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [coordinators, setCoordinators] = useState([]);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [loading, setLoading] = useState(true);
   
-  const { data: stats, loading: sLoading } = useService(getStats, [activeStudentId], [activeStudentId]);
-  const { data: joinedClubs, loading: jLoading } = useService(getJoinedClubs, [activeStudentId], [activeStudentId]);
-  const { data: availableClubs, loading: aLoading } = useService(getAvailableClubs, [activeStudentId], [activeStudentId]);
-  const { data: activities, loading: actLoading } = useService(getUpcomingActivities, [activeStudentId], [activeStudentId]);
-  const { data: coordinators, loading: cLoading } = useService(getCoordinators, [activeStudentId], [activeStudentId]);
+  const { activeStudentId } = useStudent();
+  const studentId = activeStudentId || 'stud-001';
 
-  const loading = sLoading || jLoading || aLoading || actLoading || cLoading;
+  const loadStudentData = async () => {
+    setLoading(true);
+    try {
+      // 1. Get clubs with membership status
+      const clubs = await clubsService.getStudentClubs(studentId);
+      setStudentClubs(clubs);
+
+      // 2. Resolve all upcoming activities / events for the clubs the student has joined
+      const joinedIds = clubs.filter(c => c.isMember).map(c => c.id);
+      const allEvents = [];
+      for (const cid of joinedIds) {
+        const evs = await clubsService.getClubEvents(cid);
+        allEvents.push(...evs);
+      }
+      setActivities(allEvents);
+
+      // 3. Populate fallback faculty coordinators list for all clubs
+      const resolvedCoordinators = clubs.map(c => ({
+        id: `fac-${c.id}`,
+        name: c.coordinator || 'Faculty Coordinator',
+        department: c.category || 'Co-Curricular',
+        email: `${c.coordinator?.toLowerCase().replace(/\s/g, '.')}@edudash.edu`,
+        timings: 'Mon, Wed: 3:30 PM - 5:00 PM'
+      }));
+      setCoordinators(resolvedCoordinators);
+    } catch (err) {
+      console.error("Failed to load student club dataset:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadStudentData();
+  }, [studentId]);
+
+  const handleJoinClub = async (clubId) => {
+    setErrorMsg("");
+    try {
+      await clubsService.joinClub(studentId, clubId);
+      await loadStudentData();
+    } catch (err) {
+      setErrorMsg(err.message || "Failed to join club.");
+    }
+  };
+
+  const handleLeaveClub = async (clubId) => {
+    setErrorMsg("");
+    try {
+      await clubsService.leaveClub(studentId, clubId);
+      await loadStudentData();
+    } catch (err) {
+      setErrorMsg(err.message || "Failed to leave club.");
+    }
+  };
 
   if (loading) return (
     <div className="flex items-center justify-center h-[60vh]">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#00b4d8]"></div>
     </div>
   );
+
+  const joinedClubs = studentClubs.filter(c => c.isMember);
+  const discoverClubs = studentClubs.filter(c => !c.isMember);
 
   return (
     <div className="max-w-[1600px] mx-auto pb-12 px-4 sm:px-0">
@@ -66,7 +124,7 @@ export default function ClubsCommitteesPage() {
             {t("clubs.title") || "Clubs & Committees"}
           </h1>
           <p className="text-sm text-gray-500">
-            {t("clubs.subtitle") || "Discover, join, and manage your extracurricular life."}
+            {t("clubs.subtitle") || "Discover, join, and manage your co-curricular engagement."}
           </p>
         </div>
         <div className="ml-auto">
@@ -74,8 +132,16 @@ export default function ClubsCommitteesPage() {
         </div>
       </div>
 
+      {errorMsg && (
+        <div className="mb-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl text-xs font-black text-rose-700 flex items-center gap-3 animate-bounce">
+          <AlertCircle className="w-5 h-5 text-rose-500 flex-shrink-0" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
+
       <div className="grid grid-cols-12 gap-6 items-start">
         <div className="col-span-12 lg:col-span-8 space-y-8">
+          {/* My Memberships */}
           <section>
             <div className="flex items-center justify-between mb-4 px-1">
               <h2 className="text-lg font-black text-[#03045e] flex items-center gap-2.5">
@@ -84,51 +150,70 @@ export default function ClubsCommitteesPage() {
                 </div>
                 {t("clubs.memberships") || "My Memberships"}
               </h2>
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1 rounded-xl">
+                {joinedClubs.length} / 2 Active
+              </span>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(joinedClubs || []).map((club) => {
-                const Icon = logoMap[club.logo] || Award;
-                return (
-                  <MainCard key={club.id} className="p-5 hover:translate-y-[-4px] transition-all duration-300 flex flex-col h-full">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="p-3 rounded-2xl bg-[#caf0f8]/30 text-[#0077b6] shadow-sm flex-shrink-0">
-                        <Icon size={22} />
-                      </div>
-                      <span className="text-[9px] font-black px-2.5 py-1 rounded-lg bg-[#00b4d8]/10 text-[#00b4d8] uppercase tracking-wider">
-                        {club.category}
-                      </span>
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-black text-[#03045e] mb-0.5">{club.name}</h3>
-                      <p className="text-[10px] font-black text-[#00b4d8] mb-3 uppercase tracking-[0.1em]">{club.role}</p>
-                      <p className="text-xs text-gray-500 line-clamp-2 mb-5 leading-relaxed font-medium">
-                        {club.description}
-                      </p>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-50 mt-auto">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[9px] font-black text-gray-400 uppercase">Coordinator</span>
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                          <span className="text-[10px] font-bold text-gray-700 truncate">{club.coordinator}</span>
+              {joinedClubs.length === 0 ? (
+                <div className="col-span-2 p-8 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200 text-center font-bold text-xs text-gray-400 italic">
+                  You are not enrolled in any clubs. Discover and join up to 2 clubs below!
+                </div>
+              ) : (
+                joinedClubs.map((club) => {
+                  const Icon = logoMap[club.logo] || Award;
+                  return (
+                    <MainCard key={club.id} className="p-5 hover:translate-y-[-4px] transition-all duration-300 flex flex-col h-full relative group">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="p-3 rounded-2xl bg-[#caf0f8]/30 text-[#0077b6] shadow-sm flex-shrink-0">
+                          <Icon size={22} />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-black px-2.5 py-1 rounded-lg bg-[#00b4d8]/10 text-[#00b4d8] uppercase tracking-wider">
+                            {club.category}
+                          </span>
+                          <button
+                            onClick={() => handleLeaveClub(club.id)}
+                            title="Leave Club"
+                            className="p-1 rounded-lg text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                          >
+                            <MinusCircle size={16} />
+                          </button>
                         </div>
                       </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[9px] font-black text-gray-400 uppercase">Next Session</span>
-                        <div className="flex items-center gap-1.5">
-                          <Clock size={10} className="text-[#00b4d8]" />
-                          <span className="text-[10px] font-bold text-gray-700 truncate">{club.nextMeeting?.split(',')[0]}</span>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-black text-[#03045e] mb-0.5">{club.name}</h3>
+                        <p className="text-[10px] font-black text-[#00b4d8] mb-3 uppercase tracking-[0.1em]">{club.role || 'Member'}</p>
+                        <p className="text-xs text-gray-500 line-clamp-2 mb-5 leading-relaxed font-medium">
+                          {club.description}
+                        </p>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-50 mt-auto">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[9px] font-black text-gray-400 uppercase">Coordinator</span>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                            <span className="text-[10px] font-bold text-gray-700 truncate">{club.coordinator}</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[9px] font-black text-gray-400 uppercase">Joined Date</span>
+                          <div className="flex items-center gap-1.5">
+                            <Clock size={10} className="text-[#00b4d8]" />
+                            <span className="text-[10px] font-bold text-gray-700 truncate">{club.joinedAt || '2024-07-20'}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </MainCard>
-                );
-              })}
+                    </MainCard>
+                  );
+                })
+              )}
             </div>
           </section>
 
+          {/* Discover Clubs */}
           <section className="pt-2">
             <div className="flex items-center justify-between mb-4 px-1">
               <h2 className="text-lg font-black text-[#03045e] flex items-center gap-2.5">
@@ -140,33 +225,44 @@ export default function ClubsCommitteesPage() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {(availableClubs || []).map((club) => {
-                const Icon = logoMap[club.logo] || ChevronRight;
-                return (
-                  <div key={club.id} className="bg-white border border-[#caf0f8] rounded-2xl p-4 flex items-center justify-between hover:shadow-md transition-all group">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#caf0f8] group-hover:text-[#0077b6] transition-colors flex-shrink-0">
-                        <Icon size={18} />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-black text-[#03045e] group-hover:text-[#0077b6] transition-colors leading-tight mb-1">{club.name}</h4>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[9px] font-bold text-gray-400">{club.memberCount} Members</span>
-                          <div className="w-1 h-1 rounded-full bg-gray-200" />
-                          <span className="text-[9px] font-bold text-[#00b4d8] uppercase tracking-tighter">{club.frequency}</span>
+              {discoverClubs.length === 0 ? (
+                <div className="col-span-2 p-8 bg-gray-50/50 rounded-3xl border border-dashed border-gray-200 text-center font-bold text-xs text-gray-400 italic">
+                  No other clubs available to join at this time.
+                </div>
+              ) : (
+                discoverClubs.map((club) => {
+                  const Icon = logoMap[club.logo] || ChevronRight;
+                  return (
+                    <div key={club.id} className="bg-white border border-[#caf0f8] rounded-2xl p-4 flex items-center justify-between hover:shadow-md transition-all group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#caf0f8] group-hover:text-[#0077b6] transition-colors flex-shrink-0">
+                          <Icon size={18} />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-black text-[#03045e] group-hover:text-[#0077b6] transition-colors leading-tight mb-1">{club.name}</h4>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-bold text-gray-400">{30 + (club.id.charCodeAt(club.id.length - 1) % 15)} Members</span>
+                            <div className="w-1 h-1 rounded-full bg-gray-200" />
+                            <span className="text-[9px] font-bold text-[#00b4d8] uppercase tracking-tighter">{club.category}</span>
+                          </div>
                         </div>
                       </div>
+                      <button
+                        onClick={() => handleJoinClub(club.id)}
+                        disabled={joinedClubs.length >= 2}
+                        className="h-7 px-3 rounded-lg text-[10px] font-black text-[#0077b6] hover:bg-[#0077b6] hover:text-white border border-[#0077b6]/20 disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-[#0077b6] transition-all uppercase tracking-tighter flex-shrink-0 ml-2"
+                      >
+                        Join
+                      </button>
                     </div>
-                    <button className="h-7 px-3 rounded-lg text-[10px] font-black text-[#0077b6] hover:bg-[#0077b6] hover:text-white border border-[#0077b6]/20 transition-all uppercase tracking-tighter flex-shrink-0 ml-2">
-                      Join
-                    </button>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </section>
         </div>
 
+        {/* Sidebar Activities and Coordinators */}
         <div className="col-span-12 lg:col-span-4 space-y-8">
           <section>
             <div className="flex items-center gap-2.5 mb-4 px-1">
@@ -178,40 +274,51 @@ export default function ClubsCommitteesPage() {
               </h2>
             </div>
             <MainCard borderColor="#0077b6" className="p-6">
-              <div className="space-y-5">
-                {(activities || []).map((act, idx) => (
-                  <div key={`${act.id}-${idx}`} className="relative pl-5 border-l-2 border-[#caf0f8] pb-1 last:pb-0">
-                    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-[#00b4d8]" />
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <span className="text-[10px] font-black text-[#00b4d8] uppercase tracking-[0.1em]">{act.date}</span>
-                      <span className="text-[8px] font-bold px-2 py-0.5 rounded-md bg-gray-50 text-gray-400 border border-gray-100 uppercase">
-                        {act.type}
-                      </span>
+              {activities.length === 0 ? (
+                <div className="text-center py-6 text-xs font-bold text-gray-400 italic">
+                  No upcoming activities scheduled for your active memberships.
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {activities.slice(0, showAllActivities ? undefined : 3).map((act, idx) => (
+                    <div key={`${act.id}-${idx}`} className="relative pl-5 border-l-2 border-[#caf0f8] pb-1 last:pb-0">
+                      <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-white border-2 border-[#00b4d8]" />
+                      <div className="mb-1.5 flex items-center justify-between">
+                        <span className="text-[10px] font-black text-[#00b4d8] uppercase tracking-[0.1em]">{act.date}</span>
+                        <span className="text-[8px] font-bold px-2 py-0.5 rounded-md bg-gray-50 text-gray-400 border border-gray-100 uppercase">
+                          {act.type}
+                        </span>
+                      </div>
+                      <h4 className="text-sm font-black text-[#03045e] leading-snug mb-1">{act.title}</h4>
+                      <div className="text-[10px] font-bold text-gray-400 flex items-center gap-1.5">
+                        <Clock size={10} className="text-[#00b4d8] flex-shrink-0" />
+                        <span>{act.time}</span>
+                        <div className="w-1 h-1 rounded-full bg-gray-200" />
+                        <span>{act.venue}</span>
+                      </div>
                     </div>
-                    <h4 className="text-sm font-black text-[#03045e] leading-snug mb-1">{act.title}</h4>
-                    <div className="text-[10px] font-bold text-gray-400 flex items-center gap-1.5">
-                      <div className="w-1 h-1 rounded-full bg-gray-200" />
-                      {act.club}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <button 
-                onClick={() => setShowAllActivities(!showAllActivities)}
-                className="w-full mt-6 py-2.5 rounded-xl bg-gray-50 text-[10px] font-black text-[#0077b6] uppercase tracking-widest hover:bg-[#caf0f8] transition-colors border border-dashed border-[#00b4d8]/30"
-              >
-                {showAllActivities ? "Show Less" : "View All Activities"}
-              </button>
+                  ))}
+                </div>
+              )}
+              {activities.length > 3 && (
+                <button 
+                  onClick={() => setShowAllActivities(!showAllActivities)}
+                  className="w-full mt-6 py-2.5 rounded-xl bg-gray-50 text-[10px] font-black text-[#0077b6] uppercase tracking-widest hover:bg-[#caf0f8] transition-colors border border-dashed border-[#00b4d8]/30"
+                >
+                  {showAllActivities ? "Show Less" : "View All Activities"}
+                </button>
+              )}
             </MainCard>
           </section>
 
+          {/* Coordinators */}
           <section>
             <div className="flex items-center gap-2 mb-3 px-2">
               <Users size={16} className="text-[#00b4d8]" />
               <h2 className="text-md font-black text-[#03045e]">{t("clubs.coordinators") || "Faculty Coordinators"}</h2>
             </div>
             <div className="space-y-3">
-              {(coordinators || []).map((fac) => (
+              {coordinators.map((fac) => (
                 <div key={fac.id} className="bg-white border border-[#caf0f8] rounded-[1.25rem] p-3.5 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-10 h-10 rounded-xl bg-[#03045e] flex items-center justify-center text-white font-black text-md shadow-md shadow-[#03045e]/20 flex-shrink-0">

@@ -1,0 +1,74 @@
+import React from "react";
+import { CheckSquare, CalendarDays, ClipboardList, Megaphone, UserCheck, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
+import MainCard from "../MainCard";
+
+export default function QuickActionsPanel() {
+  const actions = [
+    {
+      title: "Roll Call",
+      description: "Mark daily class attendance",
+      icon: CheckSquare,
+      color: "bg-blue-50 text-blue-600 border-blue-100",
+      link: "/teacher/attendance"
+    },
+    {
+      title: "Leave Reviews",
+      description: "Approve or reject student leaves",
+      icon: CalendarDays,
+      color: "bg-rose-50 text-rose-600 border-rose-100",
+      link: "/teacher/leave"
+    },
+    {
+      title: "Grade Homework",
+      description: "Evaluate submissions and scores",
+      icon: ClipboardList,
+      color: "bg-purple-50 text-purple-600 border-purple-100",
+      link: "/teacher/assignments"
+    },
+    {
+      title: "Class Advisory",
+      description: "Post homework and notices",
+      icon: Megaphone,
+      color: "bg-[#caf0f8] text-[#0077b6] border-blue-100",
+      link: "/teacher/updates"
+    },
+    {
+      title: "Mentor Support",
+      description: "Answer mentorship requests",
+      icon: UserCheck,
+      color: "bg-emerald-50 text-emerald-600 border-emerald-100",
+      link: "/teacher/mentorship"
+    }
+  ];
+
+  return (
+    <MainCard className="p-6">
+      <div className="flex items-center gap-2 pb-3 border-b border-gray-100 mb-5">
+        <Sparkles className="w-4.5 h-4.5 text-[#00b4d8]" />
+        <h3 className="text-sm font-black text-[#03045e] uppercase tracking-wider">
+          Quick Workflow Shortcuts
+        </h3>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+        {actions.map((act, idx) => {
+          const Icon = act.icon;
+          return (
+            <Link 
+              key={idx}
+              to={act.link}
+              className="p-4 rounded-2xl border border-gray-100 hover:border-blue-200 hover:shadow-md hover:bg-blue-50/5 text-center flex flex-col items-center justify-center transition-all duration-300 group"
+            >
+              <div className={`p-3 rounded-2xl border ${act.color} flex-shrink-0 transition-transform group-hover:scale-110 duration-300 mb-3`}>
+                <Icon className="w-5 h-5" />
+              </div>
+              <h4 className="text-xs font-black text-[#03045e] leading-tight mb-1">{act.title}</h4>
+              <p className="text-[9px] font-bold text-gray-400 leading-snug">{act.description}</p>
+            </Link>
+          );
+        })}
+      </div>
+    </MainCard>
+  );
+}

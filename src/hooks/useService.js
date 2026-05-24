@@ -67,5 +67,22 @@ export const useService = (serviceFn, args = [], deps = []) => {
     };
   }, [serviceFn, argsKey, ...deps]);
 
-  return { data, loading, error };
+  const refetch = () => {
+    if (fnCache.has(argsKey)) {
+      fnCache.delete(argsKey);
+    }
+    setError(null);
+    setTrigger(prev => prev + 1);
+  };
+
+  return { data, loading, error, refetch };
+};
+
+/**
+ * Utility to clear the cache for a specific service function
+ */
+export const clearServiceCache = (serviceFn) => {
+  if (serviceCache.has(serviceFn)) {
+    serviceCache.get(serviceFn).clear();
+  }
 };

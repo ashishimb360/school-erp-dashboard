@@ -114,6 +114,7 @@ export default function ActionNeededSection({
   fees = null,
   pendingAssignments = 0,
   missingDocuments = [],
+  classUpdates = [],
   onNavigate,
 }) {
   const { t, lang } = useLanguage();
@@ -129,6 +130,7 @@ export default function ActionNeededSection({
         fees,
         pendingAssignments,
         missingDocuments,
+        classUpdates,
         isParentMode,
         t,
         lang,
@@ -139,6 +141,7 @@ export default function ActionNeededSection({
       fees,
       pendingAssignments,
       missingDocuments,
+      classUpdates,
       isParentMode,
       t,
       lang,

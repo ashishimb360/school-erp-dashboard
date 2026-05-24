@@ -1,55 +1,230 @@
-import { MockDB } from "../mockDB";
+import { getDataProvider } from "../data";
 import { getCourses } from "./academicsService";
+import { clearServiceCache } from "../hooks/useService";
 
 /**
  * assignmentService.js
- * 
+ *
  * Operational service for managing assignments, submissions, and academic task tracking.
- * Designed as a lightweight ERP module.
+ * Designed as a lightweight relational ERP module.
  */
+
+/**
+ * Helper to resolve course and class names for assignments
+ */
+const resolveAssignmentDetails = async (assignments) => {
+  const provider = getDataProvider();
+  const allSubjects = await provider.getSubjects();
+  const allClasses = await provider.getClasses();
+
+  return assignments.map((asgn) => {
+    const subject = allSubjects.find((s) => s.id === asgn.subjectId);
+    const cls = allClasses.find((c) => c.id === asgn.classId);
+    return {
+      ...asgn,
+      subjectName: subject ? subject.name : asgn.subjectId,
+      className: cls ? cls.name : asgn.classId,
+      classDisplayName: cls ? cls.displayName : asgn.classId,
+    };
+  });
+};
+
+/**
+ * Fetches all assignments for a class
+ */
+export const getAssignmentsByClass = async (classId) => {
+  const provider = getDataProvider();
+  const assignments = await provider.getAssignmentsByClass(classId);
+  return resolveAssignmentDetails(assignments);
+};
 
 /**
  * Fetches all assignments for a specific student's class
  * and resolves their current submission status.
+ * Standardizes status derivations to prevent duplicate db states.
  */
 export const getStudentAssignments = async (studentId) => {
-  const student = await MockDB.students.findById(studentId);
-  if (!student) return [];
-
-  const assignments = await MockDB.assignments.find({ classId: student.classId });
-  const submissions = await MockDB.submissions.find({ studentId });
-
+  const provider = getDataProvider();
+  const assignments = await provider.getAssignmentsByStudent(studentId);
   const enrolledCourses = await getCourses(studentId);
 
+  const streams = await provider.getStreams();
+  const stream = streams.find((s) => s.id === enrolledCourses.streamId);
+  const streamSubjectIds = stream ? stream.subjectIds : [];
+
+  // Filter assignments by student's subjects to respect stream division (e.g. Commerce vs Science)
+  const filteredAssignments = assignments.filter((asgn) =>
+    streamSubjectIds.includes(asgn.subjectId),
+  );
+
+  const submissions = await provider.getSubmissionsByStudent(studentId);
+  const subjects = await provider.getSubjects();
+
   // Relational Mapping: Join assignments with student submissions
-  return assignments.map(asgn => {
-    const submission = submissions.find(s => s.assignmentId === asgn.id);
-    
+  return filteredAssignments.map((asgn) => {
+    const submission = submissions.find((s) => s.assignmentId === asgn.id);
+
     // Status Logic
-    let status = 'PENDING';
+    let status = "PENDING";
     const dueDate = new Date(asgn.dueDate);
     const now = new Date();
     const isOverdue = dueDate < now;
-    const isDueSoon = !isOverdue && (dueDate - now) < (48 * 60 * 60 * 1000); // 48 hours
+    const isDueSoon = !isOverdue && dueDate - now < 48 * 60 * 60 * 1000; // 48 hours
 
     if (submission) {
-      status = submission.status === 'GRADED' ? 'REVIEWED' : 'SUBMITTED';
+      status = submission.status === "GRADED" ? "REVIEWED" : "SUBMITTED";
     } else if (isOverdue) {
-      status = 'OVERDUE';
+      status = "OVERDUE";
     } else if (isDueSoon) {
-      status = 'DUE_SOON';
+      status = "DUE_SOON";
     }
 
-    // Relational Lookup: Find course name to prevent raw IDs rendering
-    const course = enrolledCourses.find(c => c.id === asgn.subjectId);
+    const course = subjects.find((c) => c.id === asgn.subjectId);
 
     return {
       ...asgn,
       subjectName: course ? course.name : asgn.subjectId,
       status,
-      submissionDetails: submission || null
+      submissionDetails: submission || null,
     };
   });
+};
+
+/**
+ * Alias of getStudentAssignments to satisfy getAssignmentsByStudent requirement
+ */
+export const getAssignmentsByStudent = getStudentAssignments;
+
+/**
+ * Fetches all assignments created by or assigned to a specific teacher
+ */
+export const getAssignmentsByTeacher = async (teacherId) => {
+  const provider = getDataProvider();
+  const assignments = await provider.getAssignmentsByTeacher(teacherId);
+  const resolved = await resolveAssignmentDetails(assignments);
+
+  const allSubmissions = await provider.getSubmissions();
+  const allStudents = await provider.getStudents();
+
+  return resolved.map((asgn) => {
+    // Roster count: Find how many students in this class take this subject (respecting stream)
+    const classStudents = allStudents.filter((s) => s.classId === asgn.classId);
+
+    const asgnSubmissions = allSubmissions.filter(
+      (s) => s.assignmentId === asgn.id,
+    );
+    const submittedCount = asgnSubmissions.filter(
+      (s) => s.status === "SUBMITTED" || s.status === "GRADED",
+    ).length;
+    const gradedCount = asgnSubmissions.filter(
+      (s) => s.status === "GRADED",
+    ).length;
+
+    return {
+      ...asgn,
+      submissionsCount: submittedCount,
+      totalStudents: classStudents.length, // relational total class roster
+      gradedCount: gradedCount,
+      gradingProgress:
+        submittedCount > 0
+          ? Math.round((gradedCount / submittedCount) * 100)
+          : 0,
+    };
+  });
+};
+
+/**
+ * Creates a new assignment.
+ * Validates teacher authority (handled at view layer via filtered options).
+ */
+export const createAssignment = async (assignmentData) => {
+  const provider = getDataProvider();
+  const newAssignment = await provider.createAssignment(assignmentData);
+  clearServiceCache("assignmentService");
+  return newAssignment;
+};
+
+/**
+ * Updates an assignment
+ */
+export const updateAssignment = async (assignmentId, updates) => {
+  const provider = getDataProvider();
+  const updatedAssignment = await provider.updateAssignment(assignmentId, {
+    ...updates,
+    updatedAt: new Date().toISOString(),
+  });
+  clearServiceCache("assignmentService");
+  return updatedAssignment;
+};
+
+/**
+ * Deletes an assignment
+ */
+export const deleteAssignment = async (assignmentId) => {
+  const provider = getDataProvider();
+  const result = await provider.deleteAssignment(assignmentId);
+  clearServiceCache("assignmentService");
+  return result;
+};
+
+/**
+ * Submit assignment response.
+ * Simulates text and link based submissions to central submissions registry.
+ */
+export const submitAssignment = async (
+  studentId,
+  assignmentId,
+  submissionData,
+) => {
+  const provider = getDataProvider();
+  const newSubmission = await provider.createSubmission({
+    assignmentId,
+    studentId,
+    ...submissionData,
+  });
+  clearServiceCache("assignmentService");
+  return {
+    success: true,
+    submission: newSubmission,
+  };
+};
+
+/**
+ * Grade a student's submission.
+ * Supports direct grading of student roster items.
+ */
+export const gradeSubmission = async (submissionId, gradeData) => {
+  const provider = getDataProvider();
+  const submission = await provider.updateSubmission(submissionId, {
+    ...gradeData,
+    gradedAt: new Date().toISOString(),
+  });
+  clearServiceCache("assignmentService");
+  return {
+    success: true,
+    submission,
+  };
+};
+
+/**
+ * Fetches all submissions (the entire class roster) for an assignment
+ * representing real-world grading dashboards.
+ */
+export const getSubmissionsByAssignment = async (assignmentId) => {
+  const provider = getDataProvider();
+  return await provider.getSubmissionsByAssignment(assignmentId);
+};
+
+/**
+ * Fetches specific submission status for a student and assignment
+ */
+export const getSubmissionStatus = async (studentId, assignmentId) => {
+  const provider = getDataProvider();
+  const submission = await provider.getSubmissionStatus(
+    studentId,
+    assignmentId,
+  );
+  return submission || null;
 };
 
 /**
@@ -58,60 +233,45 @@ export const getStudentAssignments = async (studentId) => {
 export const getAcademicProgress = async (studentId) => {
   const assignments = await getStudentAssignments(studentId);
   const enrolledCourses = await getCourses(studentId);
-  
-  // Group by enrolled course and calculate completion
-  return enrolledCourses.map(course => {
+
+  return enrolledCourses.map((course) => {
     const subjectId = course.id;
-    
-    const subAssignments = assignments.filter(a => a.subjectId === subjectId);
+    const subAssignments = assignments.filter((a) => a.subjectId === subjectId);
     const total = subAssignments.length;
-    const completed = subAssignments.filter(a => ['SUBMITTED', 'REVIEWED', 'GRADED'].includes(a.status)).length;
-    
+    const completed = subAssignments.filter((a) =>
+      ["SUBMITTED", "REVIEWED", "GRADED"].includes(a.status),
+    ).length;
+
     return {
       subjectId: subjectId,
       subjectName: course.name,
       totalTasks: total,
       completedTasks: completed,
       progressPercentage: total > 0 ? Math.round((completed / total) * 100) : 0,
-      status: total === 0 ? 'NO_TASKS' : completed === total ? 'COMPLETED' : 'IN_PROGRESS'
+      status:
+        total === 0
+          ? "NO_TASKS"
+          : completed === total
+            ? "COMPLETED"
+            : "IN_PROGRESS",
     };
   });
 };
 
 /**
- * Fetches the academic timeline (upcoming and overdue work)
+ * Fetches the academic timeline (upcoming and overdue work) for students
  */
 export const getAcademicTimeline = async (studentId) => {
   const assignments = await getStudentAssignments(studentId);
-  
+
   return {
-    overdue: assignments.filter(a => a.status === 'OVERDUE'),
+    overdue: assignments.filter((a) => a.status === "OVERDUE"),
     upcoming: assignments
-      .filter(a => ['PENDING', 'DUE_SOON'].includes(a.status))
+      .filter((a) => ["PENDING", "DUE_SOON"].includes(a.status))
       .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate)),
     recent: assignments
-      .filter(a => ['SUBMITTED', 'REVIEWED'].includes(a.status))
+      .filter((a) => ["SUBMITTED", "REVIEWED"].includes(a.status))
       .sort((a, b) => new Date(b.dueDate) - new Date(a.dueDate))
-      .slice(0, 5)
+      .slice(0, 5),
   };
-};
-
-/**
- * Mock submission of an assignment
- * In a real backend, this would involve file upload and DB mutation.
- */
-export const submitAssignment = async (studentId, assignmentId, fileMetadata) => {
-  console.log(`[Service] Submitting assignment ${assignmentId} for student ${studentId}`, fileMetadata);
-  
-  // Simulation: We don't mutate the actual MockDB here to avoid state persistence issues in this session,
-  // but we return success to allow UI updates.
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ 
-        success: true, 
-        submissionId: `subm-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: new Date().toISOString()
-      });
-    }, 1000);
-  });
 };

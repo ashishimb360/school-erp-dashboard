@@ -1,28 +1,28 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { 
-  getTeacherWorkload, 
-  getStudentsInClass, 
-  getMarksForClass, 
-  submitMarks 
+import {
+  getTeacherWorkload,
+  getStudentsInClass,
+  getMarksForClass,
+  submitMarks,
 } from "../../services/teacherService";
 import { getExams } from "../../services/examService";
 import { getSubjects } from "../../services/academicsService";
 import TeacherModuleHeader from "../../components/teacher/TeacherModuleHeader";
-import MainCard from "../../components/teacher/../MainCard";
+import MainCard from "../../components/MainCard";
 import TeacherDataTable from "../../components/teacher/TeacherDataTable";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle, Save, AlertCircle } from "lucide-react";
+import { CheckCircle, Save, AlertCircle, X } from "lucide-react";
 
 /**
  * MarksExamsPage
- * 
+ *
  * Production-grade ERP marks entry system.
  * Implements a relational mutation loop for academic results.
  */
 const MarksExamsPage = () => {
   const { user } = useAuth();
-  
+
   // Selection State
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
@@ -34,11 +34,12 @@ const MarksExamsPage = () => {
   const [subjects, setSubjects] = useState([]);
   const [students, setStudents] = useState([]);
   const [marks, setMarks] = useState({}); // { studentId: { marks: '', remarks: '' } }
-  
+
   // UI State
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [status, setStatus] = useState({ type: null, message: "" });
+  const [publishedAt, setPublishedAt] = useState(null); // Persistent submission timestamp
+  const [error, setError] = useState("");
 
   // Initial Fetch
   useEffect(() => {
@@ -47,12 +48,12 @@ const MarksExamsPage = () => {
         const [workloadData, examData, subjectData] = await Promise.all([
           getTeacherWorkload(user.linkedEntityId),
           getExams(),
-          getSubjects()
+          getSubjects(),
         ]);
         setWorkload(workloadData);
         setExams(examData);
         setSubjects(subjectData);
-        
+
         // Auto-select first class/subject/exam if available
         if (workloadData?.classes?.length > 0) {
           setSelectedClass(workloadData.classes[0].id);
@@ -81,18 +82,20 @@ const MarksExamsPage = () => {
       try {
         const [studentList, existingMarks] = await Promise.all([
           getStudentsInClass(selectedClass),
-          getMarksForClass(selectedClass, selectedSubject, selectedExam)
+          getMarksForClass(selectedClass, selectedSubject, selectedExam),
         ]);
-        
+
         setStudents(studentList);
-        
+
         // Transform existing marks into our grid state
         const marksMap = {};
-        studentList.forEach(s => {
-          const m = existingMarks.find(em => em.studentId === s.id);
+        studentList.forEach((s) => {
+          const m = existingMarks.find((em) => em.studentId === s.id);
           marksMap[s.id] = {
             marks: m ? m.marksObtained : "",
-            remarks: m ? m.remarks : ""
+            remarks: m ? m.remarks : "",
+            isAbsent: m ? !!m.isAbsent : false,
+            practicalMarks: m ? m.practicalMarks || "" : "",
           };
         });
         setMarks(marksMap);
@@ -106,27 +109,40 @@ const MarksExamsPage = () => {
     fetchStudentsAndMarks();
   }, [selectedClass, selectedSubject, selectedExam]);
 
+  const activeExamObj = useMemo(() => {
+    return exams.find((e) => e.id === selectedExam);
+  }, [exams, selectedExam]);
+
+  const isEvaluationActive = useMemo(() => {
+    return activeExamObj?.status === "evaluation";
+  }, [activeExamObj]);
+
+  // Reset published state when selection changes
+  useEffect(() => {
+    setPublishedAt(null);
+  }, [selectedClass, selectedSubject, selectedExam]);
+
   // Handlers
   const handleMarkChange = (studentId, field, value) => {
-    setMarks(prev => ({
+    setMarks((prev) => ({
       ...prev,
       [studentId]: {
         ...prev[studentId],
-        [field]: value
-      }
+        [field]: value,
+      },
     }));
   };
 
   const handleSave = async () => {
     setSubmitting(true);
-    setStatus({ type: null, message: "" });
-    
     try {
-      const marksList = students.map(s => ({
+      const marksList = students.map((s) => ({
         studentId: s.id,
-        marks: marks[s.id]?.marks,
+        marks: marks[s.id]?.isAbsent ? 0 : marks[s.id]?.marks,
         remarks: marks[s.id]?.remarks,
-        maxMarks: 100 // Default for now
+        maxMarks: 100,
+        isAbsent: !!marks[s.id]?.isAbsent,
+        practicalMarks: marks[s.id]?.isAbsent ? 0 : marks[s.id]?.practicalMarks || 0,
       }));
 
       await submitMarks(
@@ -134,64 +150,114 @@ const MarksExamsPage = () => {
         selectedClass,
         selectedSubject,
         selectedExam,
-        marksList
+        marksList,
       );
 
-      setStatus({ type: "success", message: "Marks uploaded successfully to ERP database." });
-      
-      // Clear status after 3 seconds
-      setTimeout(() => setStatus({ type: null, message: "" }), 3000);
+      // Re-fetch marks from DB to confirm persistence
+      const updatedMarks = await getMarksForClass(
+        selectedClass,
+        selectedSubject,
+        selectedExam,
+      );
+      const marksMap = {};
+      students.forEach((s) => {
+        const m = updatedMarks.find((em) => em.studentId === s.id);
+        marksMap[s.id] = {
+          marks: m ? m.marksObtained : "",
+          remarks: m ? m.remarks : "",
+          isAbsent: m ? !!m.isAbsent : false,
+          practicalMarks: m ? m.practicalMarks || "" : "",
+        };
+      });
+      setMarks(marksMap);
+
+      // Set persistent published timestamp
+      setPublishedAt(new Date());
     } catch (err) {
-      setStatus({ type: "error", message: "Failed to upload marks. Please try again." });
+      console.error("Failed to save marks:", err);
+      setError("Failed to publish marks. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Table Columns
   const columns = [
     {
-      header: "Roll No",
+      header: "Adm No.",
       accessor: "admissionNo",
-      className: "w-24"
+      className: "w-24",
     },
     {
       header: "Student Name",
       accessor: "name",
-      className: "w-64"
+      className: "w-64",
     },
     {
-      header: "Marks (100)",
+      header: "Theory Marks (100)",
       render: (row) => (
-        <input 
+        <input
           type="number"
           min="0"
           max="100"
-          value={marks[row.id]?.marks || ""}
-          onChange={(e) => handleMarkChange(row.id, 'marks', e.target.value)}
-          placeholder="0.00"
-          className="w-24 px-3 py-2 bg-[#f8fdff] border border-[#caf0f8] rounded-lg text-[#03045e] font-bold focus:outline-none focus:ring-2 focus:ring-[#00b4d8]/20 transition-all"
+          disabled={!isEvaluationActive || marks[row.id]?.isAbsent}
+          value={marks[row.id]?.isAbsent ? "" : marks[row.id]?.marks || ""}
+          onChange={(e) => handleMarkChange(row.id, "marks", e.target.value)}
+          placeholder={marks[row.id]?.isAbsent ? "ABS" : "0.00"}
+          className="w-24 px-3 py-2 bg-[#f8fdff] border border-[#caf0f8] rounded-lg text-[#03045e] font-bold focus:outline-none focus:ring-2 focus:ring-[#00b4d8]/20 transition-all disabled:bg-gray-100 disabled:text-gray-400"
         />
       ),
-      className: "w-32"
+      className: "w-32",
+    },
+    {
+      header: "Practical Marks (30)",
+      render: (row) => (
+        <input
+          type="number"
+          min="0"
+          max="30"
+          disabled={!isEvaluationActive || marks[row.id]?.isAbsent}
+          value={marks[row.id]?.isAbsent ? "" : marks[row.id]?.practicalMarks || ""}
+          onChange={(e) => handleMarkChange(row.id, "practicalMarks", e.target.value)}
+          placeholder={marks[row.id]?.isAbsent ? "ABS" : "0.00"}
+          className="w-24 px-3 py-2 bg-[#f8fdff] border border-[#caf0f8] rounded-lg text-[#03045e] font-bold focus:outline-none focus:ring-2 focus:ring-[#00b4d8]/20 transition-all disabled:bg-gray-100 disabled:text-gray-400"
+        />
+      ),
+      className: "w-32",
+    },
+    {
+      header: "Mark Absent",
+      render: (row) => (
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="checkbox"
+            disabled={!isEvaluationActive}
+            checked={!!marks[row.id]?.isAbsent}
+            onChange={(e) => handleMarkChange(row.id, "isAbsent", e.target.checked)}
+            className="w-4 h-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500 cursor-pointer"
+          />
+          <span className="text-[10px] uppercase font-black text-rose-500">Absent</span>
+        </label>
+      ),
+      className: "w-28",
     },
     {
       header: "Academic Remarks",
       render: (row) => (
-        <input 
+        <input
           type="text"
+          disabled={!isEvaluationActive}
           value={marks[row.id]?.remarks || ""}
-          onChange={(e) => handleMarkChange(row.id, 'remarks', e.target.value)}
+          onChange={(e) => handleMarkChange(row.id, "remarks", e.target.value)}
           placeholder="e.g. Excellent progress"
-          className="w-full px-3 py-2 bg-[#f8fdff] border border-[#caf0f8] rounded-lg text-[#03045e] font-medium focus:outline-none focus:ring-2 focus:ring-[#00b4d8]/20 transition-all placeholder:text-[#90e0ef]"
+          className="w-full px-3 py-2 bg-[#f8fdff] border border-[#caf0f8] rounded-lg text-[#03045e] font-medium focus:outline-none focus:ring-2 focus:ring-[#00b4d8]/20 transition-all placeholder:text-[#90e0ef] disabled:bg-gray-50 disabled:text-gray-400"
         />
-      )
-    }
+      ),
+    },
   ];
 
   return (
     <div className="space-y-8 pb-12">
-      <TeacherModuleHeader 
+      <TeacherModuleHeader
         titleKey="nav.marks_exams"
         descriptionKey="Enterprise examination management and mark entry terminal."
         helperContentEn="Select your class and subject to enter examination marks. All data is saved to the central ERP repository in real-time."
@@ -203,32 +269,40 @@ const MarksExamsPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Class Selector */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Target Class</label>
-            <select 
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+              Target Class
+            </label>
+            <select
               value={selectedClass}
               onChange={(e) => setSelectedClass(e.target.value)}
               className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50/50 text-[#03045e] font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none transition-all cursor-pointer"
             >
               <option value="">Select Class</option>
-              {workload?.classes?.map(c => (
-                <option key={c.id} value={c.id}>{c.name} - {c.section}</option>
+              {workload?.classes?.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.displayName || `${c.name} — Section ${c.section}`}
+                </option>
               ))}
             </select>
           </div>
 
           {/* Subject Selector */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Subject Terminal</label>
-            <select 
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+              Subject Terminal
+            </label>
+            <select
               value={selectedSubject}
               onChange={(e) => setSelectedSubject(e.target.value)}
               className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50/50 text-[#03045e] font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none transition-all cursor-pointer"
             >
               <option value="">Select Subject</option>
-              {workload?.profile?.subjectIds?.map(subId => {
-                const sub = subjects.find(s => s.id === subId);
+              {workload?.profile?.subjectIds?.map((subId) => {
+                const sub = subjects.find((s) => s.id === subId);
                 return (
-                  <option key={subId} value={subId}>{sub?.name || subId}</option>
+                  <option key={subId} value={subId}>
+                    {sub?.name || subId}
+                  </option>
                 );
               })}
             </select>
@@ -236,15 +310,19 @@ const MarksExamsPage = () => {
 
           {/* Exam Selector */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Examination Type</label>
-            <select 
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+              Examination Type
+            </label>
+            <select
               value={selectedExam}
               onChange={(e) => setSelectedExam(e.target.value)}
               className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50/50 text-[#03045e] font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none transition-all cursor-pointer"
             >
               <option value="">Select Examination</option>
-              {exams.map(ex => (
-                <option key={ex.id} value={ex.id}>{ex.name}</option>
+              {exams.map((ex) => (
+                <option key={ex.id} value={ex.id}>
+                  {ex.name}
+                </option>
               ))}
             </select>
           </div>
@@ -262,20 +340,33 @@ const MarksExamsPage = () => {
           >
             <div className="flex justify-between items-center px-2">
               <div>
-                <h3 className="text-xl font-black text-[#03045e]">Academic Scoreboard</h3>
-                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Entry terminal for {students.length} students</p>
+                <h3 className="text-xl font-black text-[#03045e]">
+                  Academic Scoreboard
+                </h3>
+                <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">
+                  Entry terminal for {students.length} students
+                </p>
               </div>
-              
-              <button 
+
+              <button
                 onClick={handleSave}
-                disabled={submitting || loading}
+                disabled={submitting || loading || !isEvaluationActive}
                 className={`flex items-center gap-2 px-6 py-3 rounded-xl font-black text-sm tracking-widest uppercase transition-all shadow-lg ${
-                  submitting 
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                    : 'bg-[#03045e] text-white hover:bg-[#023e8a] hover:-translate-y-1 active:translate-y-0'
+                  publishedAt
+                    ? "bg-emerald-500 text-white"
+                    : submitting || !isEvaluationActive
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-[#03045e] text-white hover:bg-[#023e8a] hover:-translate-y-1 active:translate-y-0"
                 }`}
               >
-                {submitting ? 'Committing...' : (
+                {submitting ? (
+                  "Publishing..."
+                ) : publishedAt ? (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    Published to ERP
+                  </>
+                ) : (
                   <>
                     <Save className="w-4 h-4" />
                     Publish to ERP
@@ -284,22 +375,60 @@ const MarksExamsPage = () => {
               </button>
             </div>
 
-            {status.type && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className={`p-4 rounded-2xl flex items-center gap-3 font-bold text-sm ${
-                  status.type === 'success' 
-                    ? 'bg-green-50 text-green-700 border border-green-100' 
-                    : 'bg-red-50 text-red-700 border border-red-100'
-                }`}
+            {/* Locked Overlay Warning */}
+            {!isEvaluationActive && selectedExam && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 rounded-2xl flex items-center gap-3 font-bold text-sm bg-amber-50 text-amber-700 border border-amber-200"
               >
-                {status.type === 'success' ? <CheckCircle className="shrink-0" /> : <AlertCircle className="shrink-0" />}
-                {status.message}
+                <AlertCircle className="shrink-0 w-5 h-5 text-amber-500" />
+                <span>
+                  <strong>Marks Entry Closed:</strong> Marks entry is locked because the selected exam cycle is not in its active <strong>Evaluation</strong> lifecycle phase.
+                </span>
               </motion.div>
             )}
 
-            <TeacherDataTable 
+            {/* Persistent published banner */}
+            {publishedAt && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 rounded-2xl flex items-center gap-3 font-bold text-sm bg-emerald-50 text-emerald-700 border border-emerald-100"
+              >
+                <CheckCircle className="shrink-0 w-5 h-5" />
+                <span>
+                  Marks published to ERP at{" "}
+                  <strong>
+                    {publishedAt.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </strong>
+                  . Student portals will reflect these marks on next refresh.
+                </span>
+              </motion.div>
+            )}
+
+            {/* Error Display */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 rounded-2xl flex items-center gap-3 font-bold text-sm bg-rose-50 text-rose-700 border border-rose-200"
+              >
+                <AlertCircle className="shrink-0 w-5 h-5" />
+                <span>{error}</span>
+                <button
+                  onClick={() => setError("")}
+                  className="ml-auto text-rose-400 hover:text-rose-600"
+                >
+                  <X size={16} />
+                </button>
+              </motion.div>
+            )}
+
+            <TeacherDataTable
               columns={columns}
               data={students}
               loading={loading}

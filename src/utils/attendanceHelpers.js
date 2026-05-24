@@ -2,7 +2,7 @@
 // Palette: #03045e deep-twilight | #0077b6 bright-teal-blue | #00b4d8 turquoise-surf | #caf0f8 light-cyan
 
 export function getAttendanceStatus(percentage) {
-  if (percentage >= 85) {
+  if (percentage > 85) {
     return {
       status: "excellent",
       colorClass: "text-[#00b4d8]",
@@ -13,16 +13,25 @@ export function getAttendanceStatus(percentage) {
     };
   } else if (percentage >= 75) {
     return {
-      status: "moderate",
+      status: "good",
       colorClass: "text-[#0077b6]",
       bgClass: "bg-[#0077b6]/20",
       barClass: "bg-[#0077b6]",
       strokeColor: "#0077b6",
       messageKey: "attendance.moderate",
     };
-  } else {
+  } else if (percentage >= 60) {
     return {
       status: "warning",
+      colorClass: "text-amber-500",
+      bgClass: "bg-amber-100",
+      barClass: "bg-amber-400",
+      strokeColor: "#F59E0B",
+      messageKey: "attendance.warning",
+    };
+  } else {
+    return {
+      status: "critical",
       colorClass: "text-red-500",
       bgClass: "bg-red-100",
       barClass: "bg-red-400",

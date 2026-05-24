@@ -1,170 +1,97 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { getTeacherWorkload, getStudentsInClass } from "../../services/teacherService";
-import { getExams, getClassAnalytics } from "../../services/examService";
-import { getSubjects } from "../../services/academicsService";
+import { getAcademicOverview } from "../../services/studentPerformanceService";
+import { getTeacherWorkload } from "../../services/teacherService";
 import TeacherModuleHeader from "../../components/teacher/TeacherModuleHeader";
-import MainCard from "../../components/teacher/../MainCard";
-import { motion } from "framer-motion";
-import { TrendingUp, Award, AlertCircle, PieChart } from "lucide-react";
+import PerformanceSummaryCards from "../../components/performance/PerformanceSummaryCards";
+import StudentPerformanceTable from "../../components/performance/StudentPerformanceTable";
+import StudentDetailPanel from "../../components/performance/StudentDetailPanel";
+import { AnimatePresence } from "framer-motion";
 
 const StudentPerfPage = () => {
   const { user } = useAuth();
-  
-  const [selectedClass, setSelectedClass] = useState("");
-  const [selectedSubject, setSelectedSubject] = useState("");
-  const [selectedExam, setSelectedExam] = useState("");
-  
-  const [workload, setWorkload] = useState(null);
-  const [exams, setExams] = useState([]);
-  const [subjects, setSubjects] = useState([]);
-  const [analytics, setAnalytics] = useState(null);
+  const teacherId = user?.linkedEntityId || "teach-001";
+
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [overviewStats, setOverviewStats] = useState(null);
+  const [teacherProfile, setTeacherProfile] = useState(null);
+  const [selectedStudentId, setSelectedStudentId] = useState(null);
+
+  const fetchPerformanceData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [stats, workload] = await Promise.all([
+        getAcademicOverview(teacherId),
+        getTeacherWorkload(teacherId)
+      ]);
+      setOverviewStats(stats);
+      setTeacherProfile(workload?.profile || null);
+    } catch (err) {
+      console.error("Failed to load teacher performance dashboard data:", err);
+      setError("Failed to compile class performance records.");
+    } finally {
+      setLoading(false);
+    }
+  }, [teacherId]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [workloadData, examData, subjectData] = await Promise.all([
-          getTeacherWorkload(user.linkedEntityId),
-          getExams(),
-          getSubjects()
-        ]);
-        setWorkload(workloadData);
-        setExams(examData);
-        setSubjects(subjectData);
-        
-        if (workloadData?.classes?.length > 0) setSelectedClass(workloadData.classes[0].id);
-        if (workloadData?.profile?.subjectIds?.length > 0) setSelectedSubject(workloadData.profile.subjectIds[0]);
-        if (examData.length > 0) setSelectedExam(examData[0].id);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [user.linkedEntityId]);
-
-  useEffect(() => {
-    if (!selectedClass || !selectedSubject || !selectedExam) return;
-
-    const fetchAnalytics = async () => {
-      setLoading(true);
-      try {
-        const data = await getClassAnalytics(selectedClass, selectedSubject, selectedExam);
-        setAnalytics(data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAnalytics();
-  }, [selectedClass, selectedSubject, selectedExam]);
+    fetchPerformanceData();
+  }, [fetchPerformanceData]);
 
   return (
     <div className="space-y-8 pb-12">
-      <TeacherModuleHeader 
+      <TeacherModuleHeader
         titleKey="nav.student_perf"
-        descriptionKey="Enterprise academic intelligence and performance analytics."
-        helperContentEn="Monitor class averages, identify toppers, and detect students who may need additional support."
-        helperContentHi="कक्षा के औसत की निगरानी करें, टॉपर्स की पहचान करें, और उन छात्रों का पता लगाएं जिन्हें अतिरिक्त सहायता की आवश्यकता हो सकती है।"
+        descriptionKey="Academic Progress Monitoring & Intervention Workspace"
+        helperContentEn="Evaluate attendance consistencies, academic results, pending submissions, and log mentor observation reports."
+        helperContentHi="कक्षा के छात्रों के शैक्षणिक प्रदर्शन, उपस्थिति दरों, लंबित असाइनमेंट की समीक्षा करें और मेंटर रिमार्क्स दर्ज करें।"
       />
 
-      {/* Filters */}
-      <MainCard className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Class</label>
-            <select 
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-              className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50/50 text-[#03045e] font-bold focus:outline-none appearance-none cursor-pointer"
-            >
-              {workload?.classes?.map(c => <option key={c.id} value={c.id}>{c.name} - {c.section}</option>)}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Subject</label>
-            <select 
-              value={selectedSubject}
-              onChange={(e) => setSelectedSubject(e.target.value)}
-              className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50/50 text-[#03045e] font-bold focus:outline-none appearance-none cursor-pointer"
-            >
-              {workload?.profile?.subjectIds?.map(subId => {
-                const sub = subjects.find(s => s.id === subId);
-                return (
-                  <option key={subId} value={subId}>{sub?.name || subId}</option>
-                );
-              })}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Exam</label>
-            <select 
-              value={selectedExam}
-              onChange={(e) => setSelectedExam(e.target.value)}
-              className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50/50 text-[#03045e] font-bold focus:outline-none appearance-none cursor-pointer"
-            >
-              {exams.map(ex => <option key={ex.id} value={ex.id}>{ex.name}</option>)}
-            </select>
-          </div>
+      {loading ? (
+        <div className="flex flex-col items-center justify-center min-h-[300px]">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00b4d8] mb-2"></div>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Aggregating Academic Data...</p>
         </div>
-      </MainCard>
+      ) : error ? (
+        <div className="bg-rose-50 border border-rose-100 text-rose-700 p-6 rounded-2xl text-center">
+          <p className="font-bold">{error}</p>
+          <button 
+            onClick={fetchPerformanceData} 
+            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md hover:bg-indigo-700 transition"
+          >
+            Retry Aggregation
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* 1. Statistics Aggregation Header Cards */}
+          {overviewStats && <PerformanceSummaryCards stats={overviewStats} />}
 
-      {/* Analytics Grid */}
-      {analytics && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard 
-            title="Class Average" 
-            value={`${analytics.average}%`} 
-            icon={<TrendingUp className="text-blue-500" />} 
-            color="bg-blue-50"
-          />
-          <StatCard 
-            title="Class Topper" 
-            value={analytics.topper.name} 
-            subValue={`Score: ${analytics.topper.marks}/100`}
-            icon={<Award className="text-yellow-500" />} 
-            color="bg-yellow-50"
-          />
-          <StatCard 
-            title="Participation" 
-            value="100%" 
-            icon={<PieChart className="text-green-500" />} 
-            color="bg-green-50"
-          />
-          <StatCard 
-            title="Academic Alert" 
-            value="2 Students" 
-            subValue="Below 40% threshold"
-            icon={<AlertCircle className="text-red-500" />} 
-            color="bg-red-50"
-          />
-        </div>
+          {/* 2. Interactive Search & Roster Grid */}
+          {overviewStats && (
+            <StudentPerformanceTable
+              studentsData={overviewStats.studentsData || []}
+              onSelectStudent={(id) => setSelectedStudentId(id)}
+            />
+          )}
+
+          {/* 3. Detail Profile / Remark Form Sliding Drawer */}
+          <AnimatePresence>
+            {selectedStudentId && (
+              <StudentDetailPanel
+                studentId={selectedStudentId}
+                teacherId={teacherId}
+                teacherName={teacherProfile?.name || "Assigned Mentor"}
+                onClose={() => setSelectedStudentId(null)}
+                onRefresh={fetchPerformanceData}
+              />
+            )}
+          </AnimatePresence>
+        </>
       )}
-
-      {/* Placeholder for deeper analytics */}
-      <MainCard className="p-12 text-center border-dashed border-2 border-gray-100">
-        <p className="text-gray-400 font-bold italic">Detailed performance charts and trend analysis will appear here as more data is collected.</p>
-      </MainCard>
     </div>
   );
 };
-
-const StatCard = ({ title, value, subValue, icon, color }) => (
-  <motion.div 
-    whileHover={{ y: -5 }}
-    className={`${color} p-6 rounded-[2rem] border border-white/50 shadow-sm`}
-  >
-    <div className="p-3 bg-white w-fit rounded-2xl mb-4 shadow-sm">
-      {icon}
-    </div>
-    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{title}</h4>
-    <div className="text-2xl font-black text-[#03045e]">{value}</div>
-    {subValue && <div className="text-[10px] font-bold text-gray-500 mt-1">{subValue}</div>}
-  </motion.div>
-);
 
 export default StudentPerfPage;

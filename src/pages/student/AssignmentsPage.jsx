@@ -26,8 +26,8 @@ const AssignmentsPage = () => {
   const [selectedSubjectId, setSelectedSubjectId] = useState(null);
 
   // Centralized services: Optimized by removing redundant timeline fetches
-  const { data: progress, loading: pLoading, error: pError } = useService(getAcademicProgress, [studentId], [studentId]);
-  const { data: assignments, loading: aLoading, error: aError } = useService(getStudentAssignments, [studentId], [studentId]);
+  const { data: progress, loading: pLoading, error: pError, refetch: refetchProgress } = useService(getAcademicProgress, [studentId], [studentId]);
+  const { data: assignments, loading: aLoading, error: aError, refetch: refetchAssignments } = useService(getStudentAssignments, [studentId], [studentId]);
 
   // Unified Combinational Filtering Logic (Backend-Ready & Scalable)
   const filteredAssignments = useMemo(() => {
@@ -218,18 +218,33 @@ const AssignmentsPage = () => {
                 <AssignmentCard 
                   key={asgn.id} 
                   assignment={asgn} 
-                  onStatusUpdate={() => {}}
+                  onStatusUpdate={() => {
+                    refetchProgress();
+                    refetchAssignments();
+                  }}
                 />
               ))}
             </div>
+          ) : assignments && assignments.length === 0 ? (
+            /* No data at all — not a filter issue */
+            <MainCard className="p-12 text-center border border-dashed border-gray-200 shadow-sm flex flex-col items-center justify-center rounded-3xl bg-white w-full">
+              <div className="w-12 h-12 rounded-full bg-[#caf0f8]/60 flex items-center justify-center text-[#00b4d8] mb-3">
+                <ClipboardList size={22} />
+              </div>
+              <h3 className="text-sm font-black text-[#03045e] mb-1">No assignments yet</h3>
+              <p className="text-xs text-gray-400 font-bold max-w-sm">
+                Your teacher hasn't published any assignments to this class yet. Check back later.
+              </p>
+            </MainCard>
           ) : (
+            /* Data exists but filters produce no matches */
             <MainCard className="p-12 text-center border border-dashed border-gray-200 shadow-sm flex flex-col items-center justify-center rounded-3xl bg-white w-full">
               <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 mb-3">
                 <Search size={22} />
               </div>
-              <h3 className="text-sm font-black text-[#03045e] mb-1">No assignments found</h3>
+              <h3 className="text-sm font-black text-[#03045e] mb-1">No assignments match your filters</h3>
               <p className="text-xs text-gray-400 font-bold max-w-sm">
-                Try refining your filters or search keywords to locate the academic tasks.
+                Try clearing the subject filter or adjusting the status tab to see more results.
               </p>
             </MainCard>
           )}

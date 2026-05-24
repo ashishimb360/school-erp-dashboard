@@ -228,7 +228,6 @@ const StudentProfilePage = ({ onNavigatePage }) => {
               <MainCard borderColor="#00b4d8" className="p-6 md:p-8">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-8 gap-x-6">
                   <InfoField label="Admission No." value={data.personal.admissionNumber} />
-                  <InfoField label="Enrollment No." value={data.personal.enrollmentNumber} />
                   <InfoField label="Roll Number" value={data.personal.rollNumber} />
                   <InfoField label="Date of Birth" value={data.personal.dateOfBirth} />
                   <InfoField label="Gender" value={data.personal.gender} />
@@ -253,7 +252,7 @@ const StudentProfilePage = ({ onNavigatePage }) => {
                   <InfoField label="Stream" value={data.academic.stream} />
                   <InfoField label="House Group" value={data.academic.house} />
                   <InfoField label="Class Teacher" value={data.academic.classTeacher} />
-                  <InfoField label="Enroll Date" value={data.academic.enrollmentDate} />
+                  <InfoField label="Admission Date" value={data.academic.admissionDate} />
                 </div>
                 <div className="pt-6 border-t border-gray-100">
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-4">Subjects Registered</span>

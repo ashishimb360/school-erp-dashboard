@@ -1,23 +1,37 @@
-import { MockDB } from "../mockDB";
+import { getDataProvider } from "../data";
 
 /**
  * parentService.js
- * 
+ *
  * Logic for parent-specific operations in the ERP.
  */
 
 export const getParentProfile = async (parentId) => {
-  return MockDB.parents.findById(parentId);
+  const provider = getDataProvider();
+  return await provider.getParentById(parentId);
 };
 
 export const getChildren = async (parentId) => {
-  const parent = await MockDB.parents.findById(parentId);
+  const parent = await getParentProfile(parentId);
   if (!parent || !parent.childIds) return [];
-  
+
+  const provider = getDataProvider();
+  const students = await provider.getStudents();
+
   // Resolve each child entity
-  const children = await Promise.all(
-    parent.childIds.map(id => MockDB.students.findById(id))
-  );
-  
+  const children = parent.childIds
+    .map((id) => students.find((s) => s.id === id))
+    .filter(Boolean);
+
   return children;
+};
+
+export const getAllParents = async () => {
+  const provider = getDataProvider();
+  return await provider.getParents();
+};
+
+export const updateParentProfile = async (id, updates) => {
+  const provider = getDataProvider();
+  return await provider.updateParent(id, updates);
 };

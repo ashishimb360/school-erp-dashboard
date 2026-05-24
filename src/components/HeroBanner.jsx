@@ -62,7 +62,7 @@ function HeroBanner({ student }) {
           </h1>
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
             <span className="text-xs md:text-sm font-extrabold text-white/90 bg-white/10 px-2.5 py-1 rounded-lg backdrop-blur-md">
-              {student?.enrollmentNumber}
+              {student?.admissionNumber}
             </span>
             <span className="text-xs md:text-sm font-bold text-white/70">
               {student?.email}

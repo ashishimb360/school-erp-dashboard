@@ -13,14 +13,14 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const navigate = useNavigate();
 
   // 1. Check if authenticated
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !role) {
     return <Navigate to="/login" replace />;
   }
 
   // 2. Check Role Permissions (RBAC)
   if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
     const dashboardPath = `/${role.toLowerCase()}/dashboard`;
-    const roleLabel = role === "parent" ? "Parent" : role === "teacher" ? "Teacher" : role === "admin" ? "Admin" : "Student";
+    const roleLabel = role === "PARENT" ? "Parent" : role === "TEACHER" ? "Teacher" : role === "ADMIN" ? "Admin" : "Student";
 
     return (
       <div className="flex items-center justify-center min-h-[500px] w-full px-4 select-none">
@@ -45,10 +45,7 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
               Go to {roleLabel} Dashboard
             </button>
             <button
-              onClick={() => {
-                logout();
-                navigate("/login", { replace: true });
-              }}
+              onClick={logout}
               className="w-full px-6 py-3.5 rounded-2xl font-black text-sm text-[#03045e] border border-[#caf0f8] bg-white hover:bg-[#caf0f8]/30 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
             >
               Logout & Switch Account

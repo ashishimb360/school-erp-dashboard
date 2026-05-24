@@ -1,35 +1,106 @@
-import React from "react";
-import BaseLayout from "./BaseLayout";
+import React, { useRef, useState, useCallback, useMemo } from "react";
+import { motion } from "framer-motion";
+import { useLocation, useNavigate, Outlet } from "react-router-dom";
+import AdminSidebar from "../components/admin/AdminSidebar";
+import Header from "../components/Header";
+import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
+import { getRouteForNavItem, isNavItemActive } from "../utils/routeHelpers";
 import { ROLES } from "../auth/roles";
+import { ADMIN_SECTIONS } from "../auth/navigation";
 import ProtectedRoute from "../routes/ProtectedRoute";
-import MainCard from "../components/MainCard";
-import { ShieldCheck } from "lucide-react";
 
-const PortalInDevelopment = ({ title }) => (
-  <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-    <MainCard className="p-12 flex flex-col items-center max-w-md">
-      <div className="w-20 h-20 bg-[#caf0f8] rounded-[2rem] flex items-center justify-center text-[#0077b6] mb-8">
-        <ShieldCheck size={40} />
+/**
+ * AdminLayout
+ * 
+ * Production-ready layout container for the EduDash Admin Portal.
+ * Visually grouped sections, responsive mobile drawer toggle, and HSL color alignment.
+ */
+const AdminLayout = ({ children, navItems = [], activePage, setActivePage, notifications = [], currentDate }) => {
+  const { user } = useAuth();
+  const { t } = useLanguage();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const sidebarOpenRef = useRef(null);
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  const currentPath = location.pathname;
+
+  const derivedActivePage = useMemo(() => {
+    if (activePage && activePage !== "home") return activePage;
+    
+    // Find matching active nav item ID
+    const activeItem = (navItems || []).find((item) =>
+      isNavItemActive(item.id, user?.role, currentPath)
+    );
+    return activeItem ? activeItem.id : "admin_home";
+  }, [navItems, activePage, user?.role, currentPath]);
+
+  const handleMenuClick = useCallback(() => {
+    if (sidebarOpenRef.current) {
+      sidebarOpenRef.current();
+    }
+  }, []);
+
+  const handleNavClick = useCallback(
+    (item) => {
+      const path = getRouteForNavItem(item.id, user?.role);
+      if (path) {
+        navigate(path);
+      }
+      if (setActivePage) {
+        setActivePage(item.id);
+      }
+    },
+    [navigate, user?.role, setActivePage],
+  );
+
+  const handleHeaderNavigate = useCallback(
+    (pageId) => {
+      const path = getRouteForNavItem(pageId, user?.role);
+      if (path) {
+        navigate(path);
+      }
+      if (setActivePage) {
+        setActivePage(pageId);
+      }
+    },
+    [navigate, user?.role, setActivePage],
+  );
+
+  return (
+    <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+      <div className="flex min-h-screen bg-[#caf0f8]">
+        {/* Admin Sidenav with 7 Sections */}
+        <AdminSidebar
+          sections={ADMIN_SECTIONS}
+          activePath={derivedActivePage}
+          openRef={sidebarOpenRef}
+          onNavClick={handleNavClick}
+          onCollapse={setSidebarCollapsed}
+        />
+
+        {/* Content Panel Area */}
+        <motion.div
+          animate={{ marginLeft: window.innerWidth < 768 ? 0 : (sidebarCollapsed ? 64 : 240) }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          className="flex-1 flex flex-col min-w-0"
+        >
+          <Header
+            student={user}
+            notifications={notifications}
+            currentDate={currentDate || new Date().toLocaleDateString()}
+            onMenuClick={handleMenuClick}
+            onNavigatePage={handleHeaderNavigate}
+          />
+
+          <main className="flex-1 p-4 md:p-6 lg:p-8">
+            {children || <Outlet />}
+          </main>
+        </motion.div>
       </div>
-      <h2 className="text-2xl font-black text-[#03045e] mb-4">{title}</h2>
-      <p className="text-gray-500 font-bold mb-8 leading-relaxed">
-        The {title} is currently under construction. Future updates will include system-wide fee management, transport logistics, and user administration.
-      </p>
-      <div className="flex gap-2">
-        <div className="w-2 h-2 rounded-full bg-[#00b4d8] animate-bounce" style={{ animationDelay: "0s" }} />
-        <div className="w-2 h-2 rounded-full bg-[#00b4d8] animate-bounce" style={{ animationDelay: "0.2s" }} />
-        <div className="w-2 h-2 rounded-full bg-[#00b4d8] animate-bounce" style={{ animationDelay: "0.4s" }} />
-      </div>
-    </MainCard>
-  </div>
-);
+    </ProtectedRoute>
+  );
+};
 
-const AdminLayout = ({ children, ...props }) => (
-  <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
-    <BaseLayout {...props}>
-      {children}
-    </BaseLayout>
-  </ProtectedRoute>
-);
-
-export default AdminLayout;
+export default React.memo(AdminLayout);

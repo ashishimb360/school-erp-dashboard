@@ -181,9 +181,13 @@ function ScheduleSection({ schedule = [] }) {
   );
 }
 
-function ResultsSection({ results }) {
+function ResultsSection({ results, examination }) {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("term");
+
+  const isUnderEvaluation = React.useMemo(() => {
+    return examination?.activeSession?.status === "evaluation";
+  }, [examination]);
 
   const grouped = React.useMemo(() => {
     const termExams = [];
@@ -266,7 +270,21 @@ function ResultsSection({ results }) {
           </div>
         </div>
 
-        {results.length === 0 ? (
+        {isUnderEvaluation ? (
+          <div className="flex flex-col items-center gap-3 py-10 text-center bg-sky-50/20 border border-dashed border-[#caf0f8] rounded-2xl p-6">
+            <div
+              className="w-14 h-14 rounded-full flex items-center justify-center bg-[#caf0f8]/50 animate-pulse"
+            >
+              <Info size={31} style={{ color: TEAL }} aria-hidden="true" />
+            </div>
+            <p className="text-sm font-black uppercase tracking-wider text-[#03045e]">
+              Results Under Evaluation
+            </p>
+            <p className="text-xs text-gray-500 max-w-xs leading-relaxed font-medium">
+              Examinations have successfully concluded. Score sheets are currently undergoing secure academic evaluation and moderation by school authorities.
+            </p>
+          </div>
+        ) : results.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-8 text-center">
             <div
               className="w-14 h-14 rounded-full flex items-center justify-center"
@@ -500,7 +518,7 @@ function ExaminationPage() {
           <div className="flex flex-col gap-6">
             <AdmitCardSection admitCard={examination.admitCard} />
             <AcademicAlertsSection analytics={analytics} />
-            <ResultsSection results={results || []} />
+            <ResultsSection results={results || []} examination={examination} />
           </div>
 
           <div className="flex flex-col gap-6">

@@ -13,6 +13,7 @@ const cardVariants = {
 };
 
 function getInitials(name) {
+  if (!name || typeof name !== "string") return "VC";
   const cleaned = name.replace(/\b(Dr|Prof|Mr|Ms|Mrs)\.?\s*/gi, "").trim();
   const parts = cleaned.split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "VC";

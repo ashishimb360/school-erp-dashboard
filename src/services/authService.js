@@ -1,62 +1,95 @@
 /**
  * services/authService.js
- * Service for authentication logic using MockDB
+ * Scalable Authentication Service for EduDash
  */
 
-import { MockDB } from "../mockDB";
-import { db } from "../mockDB/entities";
+import { getDataProvider } from "../data";
+import { ROLES } from "../auth/roles";
 
 /**
- * Simulated Login
- * Performs a relational lookup to find a user and their linked entity.
- * 
- * @param {string} username - The username to search for
- * @param {string} role - The role to validate against
+ * Authenticates a user with username and password.
+ * This is designed to be easily swappable with a real backend API call.
  */
-export const loginUser = async (username, role) => {
-  // 1. Find the user record in the relational store
-  const userRecord = await MockDB.users.findOne({ username, role });
-  
-  if (!userRecord) {
-    throw new Error(`User not found with username "${username}" and role "${role}"`);
+export const authenticate = async ({ role, username, password }) => {
+  if (!role) {
+    throw new Error("Please select a role to continue.");
   }
 
-  // 2. Resolve the linked entity details
+  const selectedRoleUpper = role.toUpperCase();
+  const provider = getDataProvider();
+
+  // 1. Find the user in the centralized auth users collection by username and role scope
+  const authUser = await provider.getAuthUserByUsername(
+    username,
+    selectedRoleUpper,
+  );
+
+  if (!authUser) {
+    const authUsers = await provider.getAuthUsers();
+    const usernameExists = authUsers.some((u) => u.username === username);
+    if (usernameExists) {
+      throw new Error("Invalid credentials for selected role.");
+    }
+    throw new Error("Invalid username or password");
+  }
+
+  // 2. Validate password
+  if (authUser.password !== password) {
+    throw new Error("Invalid username or password");
+  }
+
+  if (!authUser.active) {
+    throw new Error("User account is inactive");
+  }
+
+  // 3. Resolve the linked entity details
   let entity = null;
   let fullName = "Unknown User";
 
-  if (userRecord.role === "STUDENT") {
-    entity = await MockDB.students.findById(userRecord.linkedEntityId);
+  if (authUser.role === ROLES.STUDENT) {
+    const students = await provider.getStudents();
+    entity = students.find((s) => s.id === authUser.linkedEntityId);
     fullName = entity?.name || "Student";
-  } else if (userRecord.role === "TEACHER") {
-    entity = await MockDB.teachers.findById(userRecord.linkedEntityId);
+  } else if (authUser.role === ROLES.TEACHER) {
+    const teachers = await provider.getTeachers();
+    entity = teachers.find((t) => t.id === authUser.linkedEntityId);
     fullName = entity?.name || "Teacher";
-  } else if (userRecord.role === "PARENT") {
-    entity = await MockDB.parents.findById(userRecord.linkedEntityId);
+  } else if (authUser.role === ROLES.PARENT) {
+    const parents = await provider.getParents();
+    entity = parents.find((p) => p.id === authUser.linkedEntityId);
     fullName = entity?.name || "Parent";
-  } else if (userRecord.role === "ADMIN") {
+  } else if (authUser.role === ROLES.ADMIN) {
     fullName = "System Administrator";
   }
 
-  // 3. Construct the authenticated session object with UI-friendly helpers
-  const initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  // 3. Construct the normalized auth session object
+  const initials = fullName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
   const roleColors = {
-    STUDENT: "#03045e",
-    TEACHER: "#0077b6",
-    PARENT: "#00b4d8",
-    ADMIN: "#7209b7"
+    [ROLES.STUDENT]: "#03045e",
+    [ROLES.TEACHER]: "#0077b6",
+    [ROLES.PARENT]: "#00b4d8",
+    [ROLES.ADMIN]: "#7209b7",
   };
 
   return {
-    id: userRecord.id,
-    username: userRecord.username,
-    role: userRecord.role,
-    linkedEntityId: userRecord.linkedEntityId,
+    isAuthenticated: true,
+    authUserId: authUser.id,
+    role: authUser.role,
+    linkedEntityId: authUser.linkedEntityId,
     name: fullName,
-    enrollmentNumber: entity?.admissionNo || entity?.employeeId || userRecord.linkedEntityId || "N/A",
+    admissionNumber:
+      entity?.admissionNo ||
+      entity?.employeeId ||
+      authUser.linkedEntityId ||
+      "N/A",
     avatarInitials: initials || "?",
-    avatarColor: roleColors[userRecord.role] || "#03045e",
-    profile: entity // Full relational entity data
+    avatarColor: roleColors[authUser.role] || "#03045e",
+    profile: entity, // Full relational entity data for UI convenience
   };
 };
 
@@ -64,92 +97,101 @@ export const loginUser = async (username, role) => {
  * Validates session integrity (Simulated)
  */
 export const validateSession = async (user) => {
-  if (!user || !user.id) return false;
-  const record = await MockDB.users.findById(user.id);
-  return !!record;
+  if (!user || !user.authUserId) return false;
+  const provider = getDataProvider();
+  const record = await provider.getAuthUserById(user.authUserId);
+  return !!record && record.active;
 };
-
-let cachedPreviews = null;
 
 /**
- * Resolves lightweight preview details directly from the relational entities registry.
- * Bypasses simulated latency to deliver sub-millisecond (0ms) login screen loading times
- * while keeping structure aligned with future production REST APIs.
+ * Retrieves demo accounts for the quick access credential loader.
  */
-const resolveAllPreviews = () => {
-  if (cachedPreviews) return cachedPreviews;
+export const getDemoAccounts = async () => {
+  const provider = getDataProvider();
+  const users = await provider.getAuthUsers();
+  const studentsList = await provider.getStudents();
+  const teachersList = await provider.getTeachers();
+  const parentsList = await provider.getParents();
+  const classesList = await provider.getClasses();
 
-  // Create lightweight preview maps for O(1) synchronous lookup
-  const classMap = new Map(db.classes.map(c => [c.id, c]));
-  const streamMap = new Map(db.streams.map(s => [s.id, s]));
-  const studentMap = new Map(db.students.map(s => [s.id, s]));
+  const CLASS_ID_RE = /^class-(nursery|lkg|ukg|\d+)([a-d])$/i;
 
-  const studentPreviews = [];
-  const parentPreviews = [];
-  const teacherPreviews = [];
-
-  for (const user of db.users) {
-    if (user.role === "STUDENT") {
-      const student = studentMap.get(user.linkedEntityId);
-      if (student) {
-        const classData = classMap.get(student.classId);
-        const stream = streamMap.get(student.streamId);
-        let sub = "N/A";
-        if (classData) {
-          const streamSuffix = stream ? ` (${stream.name})` : "";
-          sub = `Class ${classData.name}-${classData.section}${streamSuffix}`;
-        }
-        studentPreviews.push({
-          id: user.username,
-          name: student.name,
-          sub
-        });
-      }
-    } else if (user.role === "TEACHER") {
-      const teacher = db.teachers.find(t => t.id === user.linkedEntityId);
-      if (teacher) {
-        teacherPreviews.push({
-          id: user.username,
-          name: teacher.name,
-          sub: teacher.subjectIds && teacher.subjectIds.length > 0 
-            ? `${teacher.subjectIds.map(s => s.replace("sub-", "").toUpperCase()).join(", ")} Dept`
-            : "Faculty"
-        });
-      }
-    } else if (user.role === "PARENT") {
-      const parent = db.parents.find(p => p.id === user.linkedEntityId);
-      if (parent) {
-        const children = (parent.childIds || []).map(cid => studentMap.get(cid));
-        const childrenNames = children.filter(Boolean).map(c => c.name.split(' ')[0]).join(' & ');
-        parentPreviews.push({
-          id: user.username,
-          name: parent.name,
-          sub: `Parent of ${childrenNames || "..."}`
-        });
-      }
-    }
-  }
-
-  cachedPreviews = {
-    STUDENT: studentPreviews,
-    PARENT: parentPreviews,
-    TEACHER: teacherPreviews
+  // Group by role
+  const demoAccounts = {
+    [ROLES.STUDENT]: [],
+    [ROLES.TEACHER]: [],
+    [ROLES.PARENT]: [],
+    [ROLES.ADMIN]: [],
   };
 
-  return cachedPreviews;
-};
+  users.forEach((user) => {
+    let displayName = user.username;
+    let description = "";
+    const extraMeta = {};
 
-export const getLoginStudentPreviews = async () => {
-  const previews = resolveAllPreviews();
-  return previews.STUDENT;
-};
+    if (user.role === ROLES.STUDENT) {
+      const student = studentsList.find((s) => s.id === user.linkedEntityId);
+      displayName = student ? student.name : user.username;
+      if (student) {
+        description = `Adm No. ${student.admissionNo}`;
+        if (student.classId) {
+          description += ` · Class ${student.classId.replace("class-", "").toUpperCase()}`;
+          const m = student.classId.match(CLASS_ID_RE);
+          if (m) {
+            extraMeta.classLevel = m[1].toLowerCase();
+            extraMeta.section = m[2].toUpperCase();
+          }
+        }
+      }
+    } else if (user.role === ROLES.TEACHER) {
+      const teacher = teachersList.find((t) => t.id === user.linkedEntityId);
+      displayName = teacher
+        ? teacher.metadata?.name || teacher.name || user.username
+        : user.username;
+      const designation =
+        teacher?.metadata?.designation || teacher?.designation || "";
+      const ctClass = classesList.find(
+        (c) => c.classTeacherId === user.linkedEntityId,
+      );
+      extraMeta.isClassTeacher = !!ctClass;
+      extraMeta.classTeacherOfClassId = ctClass?.id || null;
+      extraMeta.assignedClassIds =
+        teacher?.assignedClassIds || teacher?.assignedClasses || [];
+      description = extraMeta.isClassTeacher
+        ? `Class Teacher · ${designation}`
+        : designation || "Subject Teacher";
+    } else if (user.role === ROLES.PARENT) {
+      const parent = parentsList.find((p) => p.id === user.linkedEntityId);
+      displayName = parent ? parent.name : user.username;
 
-export const getLoginParentPreviews = async () => {
-  const previews = resolveAllPreviews();
-  return previews.PARENT;
-};
+      const children = studentsList.filter(
+        (s) => s.parentIds && s.parentIds.includes(user.linkedEntityId),
+      );
+      if (children.length > 0) {
+        const childInfo = children
+          .map((c) => `${c.name} (${c.admissionNo})`)
+          .join(" & ");
+        description = `Parent of ${childInfo}`;
+        const m = children[0].classId?.match(CLASS_ID_RE);
+        if (m) {
+          extraMeta.childClassLevel = m[1].toLowerCase();
+          extraMeta.childSection = m[2].toUpperCase();
+        }
+      }
+    } else if (user.role === ROLES.ADMIN) {
+      displayName = "Admin User";
+      description = "System Administrator";
+    }
 
-export const getLoginTeacherPreviews = async () => {
-  const previews = resolveAllPreviews();
-  return previews.TEACHER;
+    if (demoAccounts[user.role]) {
+      demoAccounts[user.role].push({
+        ...user,
+        displayName,
+        description,
+        ...extraMeta,
+      });
+    }
+  });
+
+  return demoAccounts;
 };

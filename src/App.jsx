@@ -1,12 +1,26 @@
-import React, { useRef, useState, useCallback, useMemo, useEffect, lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import React, {
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  lazy,
+  Suspense,
+} from "react";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import HeroBanner from "./components/HeroBanner";
 import ActionNeededSection from "./components/ActionNeededSection";
 import AttendanceCard from "./components/AttendanceCard";
 import FeeCard from "./components/FeeCard";
-import SubjectAttendanceCards from "./components/SubjectAttendanceCards";
 import TimetableCard from "./components/TimetableCard";
 import CredentialsCard from "./components/CredentialsCard";
 import AssignmentsSummaryCard from "./components/AssignmentsSummaryCard";
@@ -17,6 +31,7 @@ import ChildScopeSwitcher from "./components/parent/ChildScopeSwitcher";
 import ErrorBoundary from "./components/ErrorBoundary";
 import MainCard from "./components/MainCard";
 import { Users, ShieldCheck } from "lucide-react";
+import { startNoticeScheduler } from "./services/noticeScheduler";
 
 // Lazy Loaded Pages
 const CoursesPage = lazy(() => import("./pages/CoursesPage"));
@@ -33,21 +48,85 @@ const MentorSupportPage = lazy(() => import("./pages/MentorSupportPage"));
 const ClubsCommitteesPage = lazy(() => import("./pages/ClubsCommitteesPage"));
 const TransportPage = lazy(() => import("./pages/TransportPage"));
 const StudentProfilePage = lazy(() => import("./pages/StudentProfilePage"));
+const LeavePage = lazy(() => import("./pages/student/LeavePage"));
 
 // Teacher Portal Pages
 const TeacherDashboard = lazy(() => import("./pages/teacher/TeacherDashboard"));
-const AttendanceMgmtPage = lazy(() => import("./pages/teacher/AttendanceMgmtPage"));
-const AssignmentsManagementPage = lazy(() => import("./pages/teacher/AssignmentsManagementPage"));
+const AttendanceMgmtPage = lazy(
+  () => import("./pages/teacher/AttendanceMgmtPage"),
+);
+const AssignmentsManagementPage = lazy(
+  () => import("./pages/teacher/AssignmentsManagementPage"),
+);
 const MarksExamsPage = lazy(() => import("./pages/teacher/MarksExamsPage"));
-const ClassTimetablePage = lazy(() => import("./pages/teacher/ClassTimetablePage"));
+const ClassTimetablePage = lazy(
+  () => import("./pages/teacher/ClassTimetablePage"),
+);
 const StudentPerfPage = lazy(() => import("./pages/teacher/StudentPerfPage"));
-const AnnouncementsPage = lazy(() => import("./pages/teacher/AnnouncementsPage"));
-const TeacherMentorSupportPage = lazy(() => import("./pages/teacher/MentorSupportPage"));
-const ClubsActivitiesPage = lazy(() => import("./pages/teacher/ClubsActivitiesPage"));
-const ReportsAnalyticsPage = lazy(() => import("./pages/teacher/ReportsAnalyticsPage"));
-const ProfileSettingsPage = lazy(() => import("./pages/teacher/ProfileSettingsPage"));
+const AnnouncementsPage = lazy(
+  () => import("./pages/teacher/AnnouncementsPage"),
+);
+const TeacherMentorSupportPage = lazy(
+  () => import("./pages/teacher/MentorSupportPage"),
+);
+const ClubsActivitiesPage = lazy(
+  () => import("./pages/teacher/ClubsActivitiesPage"),
+);
+const ReportsAnalyticsPage = lazy(
+  () => import("./pages/teacher/ReportsAnalyticsPage"),
+);
+const ProfileSettingsPage = lazy(
+  () => import("./pages/teacher/ProfileSettingsPage"),
+);
+const LeaveMgmtPage = lazy(() => import("./pages/teacher/LeaveMgmtPage"));
 
-const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+// Admin Portal Pages
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const StudentsPage = lazy(() => import("./pages/admin/StudentsPage"));
+const TeachersPage = lazy(() => import("./pages/admin/TeachersPage"));
+const ParentsPage = lazy(() => import("./pages/admin/ParentsPage"));
+const AdminsPage = lazy(() => import("./pages/admin/AdminsPage"));
+const ClassesPage = lazy(() => import("./pages/admin/ClassesPage"));
+const SubjectsPage = lazy(() => import("./pages/admin/SubjectsPage"));
+const SubjectAllocationPage = lazy(
+  () => import("./pages/admin/SubjectAllocationPage"),
+);
+const AcademicStructurePage = lazy(
+  () => import("./pages/admin/AcademicStructurePage"),
+);
+const TimetablePage = lazy(() => import("./pages/admin/TimetablePage"));
+const ExaminationsPage = lazy(() => import("./pages/admin/ExaminationsPage"));
+const ResultsPage = lazy(() => import("./pages/admin/ResultsPage"));
+const AttendanceOverviewPage = lazy(
+  () => import("./pages/admin/AttendanceOverviewPage"),
+);
+const LeaveApprovalsPage = lazy(
+  () => import("./pages/admin/LeaveApprovalsPage"),
+);
+const FeeManagementPage = lazy(() => import("./pages/admin/FeeManagementPage"));
+const TransportManagementPage = lazy(
+  () => import("./pages/admin/TransportManagementPage"),
+);
+const AdminDocumentsPage = lazy(() => import("./pages/admin/DocumentsPage"));
+const NoticesPage = lazy(() => import("./pages/admin/NoticesPage"));
+const AdminAnnouncementsPage = lazy(
+  () => import("./pages/admin/AnnouncementsPage"),
+);
+const AdminClubsPage = lazy(() => import("./pages/admin/ClubsPage"));
+const AdminCommitteesPage = lazy(() => import("./pages/admin/CommitteesPage"));
+const AdminAchievementsPage = lazy(
+  () => import("./pages/admin/AchievementsPage"),
+);
+const AdminSchoolCalendarPage = lazy(
+  () => import("./pages/admin/SchoolCalendarPage"),
+);
+const AcademicPerformancePage = lazy(
+  () => import("./pages/admin/AcademicPerformancePage"),
+);
+const WorkloadAnalyticsPage = lazy(
+  () => import("./pages/admin/WorkloadAnalyticsPage"),
+);
+const AdminProfilePage = lazy(() => import("./pages/admin/AdminProfilePage"));
 
 import { formatDate } from "./utils/attendanceHelpers";
 import { LanguageProvider, useLanguage } from "./context/LanguageContext";
@@ -70,14 +149,32 @@ import AdminLayout from "./layouts/AdminLayout";
 import { StudentProvider, useStudent } from "./context/StudentContext";
 
 // Service Imports
-import { getStudentProfile, getAttendance, getDocuments } from "./services/studentService";
+import {
+  getStudentProfile,
+  getAttendance,
+  getDocuments,
+} from "./services/studentService";
 import { getFeeDetails } from "./services/financeService";
 import { getTimetable } from "./services/academicsService";
-import { getBrandingInfo, getNoticesAndEvents, getNotifications } from "./services/sharedService";
+import {
+  getBrandingInfo,
+  getNoticesAndEvents,
+  getNotifications,
+} from "./services/sharedService";
 import { getChildren } from "./services/parentService";
-import { getAcademicProgress, getAcademicTimeline } from "./services/assignmentService";
+import {
+  getAcademicProgress,
+  getAcademicTimeline,
+} from "./services/assignmentService";
 import { getExamData } from "./services/examService";
+import { getUpdatesForStudent } from "./services/classUpdatesService";
 import { useService } from "./hooks/useService";
+
+// Dashboard Aggregation and Skeleton Loaders for High-Performance progressive rendering
+import { studentDashboardService } from "./services/studentDashboardService";
+import DashboardCardSkeleton from "./components/common/skeletons/DashboardCardSkeleton";
+import ScheduleSkeleton from "./components/common/skeletons/ScheduleSkeleton";
+import ActionCenterSkeleton from "./components/common/skeletons/ActionCenterSkeleton";
 
 const LAYOUT_MAP = {
   [ROLES.STUDENT]: StudentLayout,
@@ -88,19 +185,31 @@ const LAYOUT_MAP = {
 
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  
+
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-  
+
   return isMobile;
 }
 
 const CURRENT_DATE = formatDate(new Date());
 
 // ── Home dashboard ────────────────────────────────────────────────────────────
+
+// Memoized Subcomponents to prevent cascade rendering cycles
+const MemoizedHeroBanner = React.memo(HeroBanner);
+const MemoizedActionNeededSection = React.memo(ActionNeededSection);
+const MemoizedAttendanceCard = React.memo(AttendanceCard);
+const MemoizedFeeCard = React.memo(FeeCard);
+const MemoizedTimetableCard = React.memo(TimetableCard);
+const MemoizedCredentialsCard = React.memo(CredentialsCard);
+const MemoizedAssignmentsSummaryCard = React.memo(AssignmentsSummaryCard);
+const MemoizedVCMessageCard = React.memo(VCMessageCard);
+const MemoizedNoticeBoard = React.memo(NoticeBoard);
+const MemoizedEventBoard = React.memo(EventBoard);
 
 const HomePage = React.memo(function HomePage({ onNavigatePage }) {
   const attendanceRef = useRef(null);
@@ -117,18 +226,110 @@ const HomePage = React.memo(function HomePage({ onNavigatePage }) {
 
   const [highlightedSection, setHighlightedSection] = useState(null);
   const { isParent } = useAuth();
-  const { activeStudentId, activeStudent, childrenList, setActiveStudentId } = useStudent();
+  const { activeStudentId } = useStudent();
 
-  const { data: profile } = useService(getStudentProfile, [activeStudentId], [activeStudentId]);
-  const { data: attendance } = useService(getAttendance, [activeStudentId], [activeStudentId]);
-  const { data: finance } = useService(getFeeDetails, [activeStudentId], [activeStudentId]);
-  const { data: timetable } = useService(getTimetable, [activeStudentId], [activeStudentId]);
-  const { data: progress } = useService(getAcademicProgress, [activeStudentId], [activeStudentId]);
-  const { data: timeline } = useService(getAcademicTimeline, [activeStudentId], [activeStudentId]);
-  const { data: branding } = useService(getBrandingInfo);
-  const { data: shared } = useService(getNoticesAndEvents, [activeStudentId], [activeStudentId]);
-  const { data: documents } = useService(getDocuments, [activeStudentId], [activeStudentId]);
-  const { data: examData } = useService(getExamData, [activeStudentId], [activeStudentId]);
+  // ── Isolated Local States (Instead of Homepage Mega-State) ──
+  const [profile, setProfile] = useState(null);
+  const [attendance, setAttendance] = useState(null);
+  const [finance, setFinance] = useState(null);
+  const [timetable, setTimetable] = useState(null);
+  const [progress, setProgress] = useState(null);
+  const [timeline, setTimeline] = useState(null);
+  const [branding, setBranding] = useState(null);
+  const [shared, setShared] = useState(null);
+  const [classUpdates, setClassUpdates] = useState([]);
+  const [derived, setDerived] = useState(null);
+
+  // Loading States
+  const [loadingCritical, setLoadingCritical] = useState(true);
+  const [loadingDeferred, setLoadingDeferred] = useState(true);
+
+  // Error States
+  const [errorCritical, setErrorCritical] = useState("");
+  const [errorDeferred, setErrorDeferred] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchCritical = async () => {
+      setLoadingCritical(true);
+      try {
+        const payload =
+          await studentDashboardService.getCriticalStudentDashboardPayload(
+            activeStudentId,
+          );
+        if (isMounted) {
+          setProfile(payload.profile);
+          setAttendance(payload.attendance);
+          setFinance(payload.finance);
+          setTimetable(payload.timetable);
+          setDerived((prev) => ({
+            ...prev,
+            attendanceWarnings: payload.derived?.attendanceWarnings || [],
+          }));
+          setErrorCritical("");
+        }
+      } catch (err) {
+        console.error("Failed to load Student Dashboard critical data:", err);
+        if (isMounted) {
+          setErrorCritical("Unable to retrieve basic student profile details.");
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingCritical(false);
+        }
+      }
+    };
+
+    const fetchDeferred = async () => {
+      setLoadingDeferred(true);
+      try {
+        const payload =
+          await studentDashboardService.getDeferredStudentDashboardPayload(
+            activeStudentId,
+            isParent,
+          );
+        if (isMounted) {
+          setProgress(payload.progress);
+          setTimeline(payload.timeline);
+          setBranding(payload.branding);
+          setShared(payload.shared);
+          setClassUpdates(payload.classUpdates || []);
+          setDerived((prev) => ({
+            ...prev,
+            missingDocuments: payload.derived?.missingDocuments || [],
+            completionRate: payload.derived?.completionRate || 0,
+            pendingCount: payload.derived?.pendingCount || 0,
+            overdueCount: payload.derived?.overdueCount || 0,
+            nextExam: payload.derived?.nextExam,
+          }));
+          setErrorDeferred("");
+        }
+      } catch (err) {
+        console.error("Failed to load Student Dashboard deferred data:", err);
+        if (isMounted) {
+          setErrorDeferred("Unable to retrieve announcements board.");
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingDeferred(false);
+        }
+      }
+    };
+
+    // 1. Fetch critical metrics immediately for instantaneous first-paint
+    fetchCritical();
+
+    // 2. Defer secondary heavy calls to allow seamless page mounting
+    const timer = setTimeout(() => {
+      fetchDeferred();
+    }, 50);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [activeStudentId, isParent]);
 
   const handleNavigate = useCallback((sectionId) => {
     const ref = sectionRefs.current[sectionId];
@@ -152,37 +353,6 @@ const HomePage = React.memo(function HomePage({ onNavigatePage }) {
     [highlightedSection],
   );
 
-  const attendanceWarnings = useMemo(() => {
-    return (attendance?.subjects || []).filter(s => s.percentage < 75);
-  }, [attendance?.subjects]);
-
-  const missingDocuments = useMemo(() => {
-    return (documents || []).filter(doc => doc.isMandatory && doc.status === "missing");
-  }, [documents]);
-
-  const completionRate = useMemo(() => {
-    const total = (progress || []).reduce((acc, curr) => acc + (curr.totalTasks || 0), 0);
-    const completed = (progress || []).reduce((acc, curr) => acc + (curr.completedTasks || 0), 0);
-    return total > 0 ? Math.round((completed / total) * 100) : 0;
-  }, [progress]);
-
-  const pendingCount = useMemo(() => {
-    return timeline?.upcoming?.length || 0;
-  }, [timeline?.upcoming]);
-
-  const overdueCount = useMemo(() => {
-    return timeline?.overdue?.length || 0;
-  }, [timeline?.overdue]);
-
-  const nextExam = useMemo(() => {
-    if (!examData?.schedule || examData.schedule.length === 0) return null;
-    const firstExam = examData.schedule[0];
-    return {
-      name: firstExam.subject,
-      date: firstExam.date
-    };
-  }, [examData]);
-
   const handleNavigateFeeDetails = useCallback(() => {
     onNavigatePage("feeDetails");
   }, [onNavigatePage]);
@@ -191,129 +361,184 @@ const HomePage = React.memo(function HomePage({ onNavigatePage }) {
     onNavigatePage("assignments");
   }, [onNavigatePage]);
 
-  if (!profile || !attendance || !finance || !timetable || !branding || !shared || !progress || !timeline || !documents || !examData) {
-    return (
-      <div className="space-y-6">
-        <div className="h-40 w-full bg-gray-100/50 rounded-[2.5rem] animate-pulse" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <SkeletonCard height="220px" />
-          <SkeletonCard height="220px" />
-          <SkeletonCard height="220px" />
-        </div>
-        <div className="h-72 w-full bg-gray-100/50 rounded-[2.5rem] animate-pulse" />
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col gap-6 items-start">
-
+    <div className="flex flex-col gap-6 items-start w-full">
       <div className="w-full flex gap-6 items-start">
         <div className="flex-1 min-w-0">
-          <HeroBanner student={profile.personal} />
+          {/* Hero Banner Section */}
+          {loadingCritical ? (
+            <div className="h-40 w-full bg-gray-100/50 rounded-[2.5rem] animate-pulse" />
+          ) : errorCritical ? (
+            <div className="p-4 bg-rose-50 border border-rose-100 text-rose-700 text-xs font-bold rounded-2xl">
+              {errorCritical}
+            </div>
+          ) : (
+            <MemoizedHeroBanner student={profile?.personal} />
+          )}
 
-
+          {/* Action Needed Alerts Center */}
           <div className="mt-6">
-            <ActionNeededSection
-              attendanceWarnings={attendanceWarnings}
-              nextExam={nextExam}
-              fees={finance.summary}
-              pendingAssignments={pendingCount + overdueCount}
-              missingDocuments={missingDocuments}
-              onNavigate={handleNavigate}
-            />
+            {loadingDeferred || loadingCritical ? (
+              <div className="h-28 w-full bg-gray-50/50 rounded-[2rem] border border-gray-100/80 animate-pulse" />
+            ) : (
+              <MemoizedActionNeededSection
+                attendanceWarnings={derived?.attendanceWarnings || []}
+                nextExam={derived?.nextExam}
+                fees={finance?.summary}
+                pendingAssignments={
+                  (derived?.pendingCount || 0) + (derived?.overdueCount || 0)
+                }
+                missingDocuments={derived?.missingDocuments || []}
+                classUpdates={classUpdates || []}
+                onNavigate={handleNavigate}
+              />
+            )}
           </div>
 
+          {/* Attendance & Finance Cards */}
           <div
             className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6"
             ref={attendanceRef}
             style={glowStyle("section-attendance")}
           >
-            <AttendanceCard
-              overall={attendance.overall.percentage}
-              label="Overall Attendance"
-            />
-            <div ref={feeRef} style={glowStyle("section-fee")} className="h-full">
-              <FeeCard
-                amount={finance.summary.outstandingBalance}
-                currency={finance.summary.currency}
-                dueDate={finance.summary.dueDate}
-                status={finance.summary.status}
-                amountPaid={finance.summary.totalPaid}
-                totalAmount={finance.summary.totalFees}
-                onClick={handleNavigateFeeDetails}
-              />
+            {loadingCritical ? (
+              <DashboardCardSkeleton />
+            ) : (
+              <MemoizedAttendanceCard studentId={activeStudentId} />
+            )}
+
+            <div
+              ref={feeRef}
+              style={glowStyle("section-fee")}
+              className="h-full"
+            >
+              {loadingCritical ? (
+                <DashboardCardSkeleton />
+              ) : (
+                <MemoizedFeeCard
+                  amount={finance?.summary?.outstandingBalance}
+                  currency={finance?.summary?.currency}
+                  dueDate={finance?.summary?.dueDate}
+                  status={finance?.summary?.status}
+                  amountPaid={finance?.summary?.totalPaid}
+                  totalAmount={finance?.summary?.totalFees}
+                  onClick={handleNavigateFeeDetails}
+                />
+              )}
             </div>
           </div>
 
-          <div className="mt-6">
-            <SubjectAttendanceCards subjects={attendance.subjects} />
-          </div>
-
+          {/* Timetable & Credentials */}
           <div
             className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6"
             ref={timetableRef}
             style={glowStyle("section-timetable")}
           >
             <div className="lg:col-span-2 h-full">
-              <TimetableCard weeklyTimetable={timetable.weekly} />
+              {loadingCritical ? (
+                <ScheduleSkeleton />
+              ) : (
+                <MemoizedTimetableCard
+                  weeklyTimetable={timetable?.weekly || []}
+                />
+              )}
             </div>
+
             <div className="flex flex-col gap-4">
-              <CredentialsCard 
-                type="library"
-                title="School Library"
-                primaryLabel="Library Card No."
-                primaryValue={profile.credentials?.library?.cardNumber || "LIB-11A-023"}
-                passwordLabel="PIN"
-                passwordValue={profile.credentials?.library?.pin || "lib@Ash2024"}
-                accentColor="emerald"
-                index={0} 
-              />
-              <CredentialsCard 
-                type="email"
-                title="School Email"
-                primaryLabel="Email Address"
-                primaryValue={profile.credentials?.email?.address || "ashish.kumar@springdale.edu.in"}
-                passwordLabel="Password"
-                passwordValue={profile.credentials?.email?.password || "Ash@Spring#24"}
-                accentColor="blue"
-                index={1} 
-              />
+              {loadingCritical ? (
+                <>
+                  <div className="h-[120px] bg-gray-50/60 rounded-3xl border border-gray-100 animate-pulse" />
+                  <div className="h-[120px] bg-gray-50/60 rounded-3xl border border-gray-100 animate-pulse" />
+                </>
+              ) : (
+                <>
+                  <MemoizedCredentialsCard
+                    type="library"
+                    title="School Library"
+                    primaryLabel="Library Card No."
+                    primaryValue={
+                      profile?.credentials?.library?.cardNumber || "LIB-11A-023"
+                    }
+                    passwordLabel="PIN"
+                    passwordValue={
+                      profile?.credentials?.library?.pin || "lib@Ash2024"
+                    }
+                    accentColor="emerald"
+                    index={0}
+                  />
+                  <MemoizedCredentialsCard
+                    type="email"
+                    title="School Email"
+                    primaryLabel="Email Address"
+                    primaryValue={
+                      profile?.credentials?.email?.address ||
+                      "ashish.kumar@springdale.edu.in"
+                    }
+                    passwordLabel="Password"
+                    passwordValue={
+                      profile?.credentials?.email?.password || "Ash@Spring#24"
+                    }
+                    accentColor="blue"
+                    index={1}
+                  />
+                </>
+              )}
             </div>
           </div>
 
+          {/* Assignments Summary & Principal Message */}
           <div
             className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6"
             ref={assignmentsRef}
             style={glowStyle("section-assignments")}
           >
-            <AssignmentsSummaryCard
-              completionRate={completionRate}
-              pendingCount={pendingCount}
-              overdueCount={overdueCount}
-              onViewAll={handleNavigateAssignments}
-              index={0}
-            />
-            <VCMessageCard
-              vcName={branding.principal.name}
-              vcTitle={branding.principal.title}
-              message={branding.principal.message}
-              avatarColor={branding.principal.avatarColor}
-              index={1}
-            />
+            {loadingDeferred ? (
+              <DashboardCardSkeleton />
+            ) : (
+              <MemoizedAssignmentsSummaryCard
+                completionRate={derived?.completionRate || 0}
+                pendingCount={derived?.pendingCount || 0}
+                overdueCount={derived?.overdueCount || 0}
+                onViewAll={handleNavigateAssignments}
+                index={0}
+              />
+            )}
+
+            {loadingDeferred ? (
+              <DashboardCardSkeleton />
+            ) : (
+              <MemoizedVCMessageCard
+                vcName={branding?.principal?.name}
+                vcTitle={branding?.principal?.title}
+                message={branding?.principal?.message}
+                avatarColor={branding?.principal?.avatarColor}
+                index={1}
+              />
+            )}
           </div>
 
+          {/* Notices & Events Boards */}
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <NoticeBoard
-              notices={shared.general}
-              examNotices={shared.exam}
-              index={0}
-            />
-            <EventBoard
-              happenings={shared.events}
-              upcoming={shared.upcoming}
-              index={1}
-            />
+            {loadingDeferred ? (
+              <ActionCenterSkeleton />
+            ) : (
+              <MemoizedNoticeBoard
+                notices={shared?.general || []}
+                examNotices={shared?.exam || []}
+                classUpdates={classUpdates || []}
+                index={0}
+              />
+            )}
+
+            {loadingDeferred ? (
+              <ActionCenterSkeleton />
+            ) : (
+              <MemoizedEventBoard
+                happenings={shared?.events || []}
+                upcoming={shared?.upcoming || []}
+                index={1}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -324,11 +549,13 @@ const HomePage = React.memo(function HomePage({ onNavigatePage }) {
 function LazyRoute({ Component, ...props }) {
   return (
     <ErrorBoundary>
-      <Suspense fallback={
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="w-10 h-10 border-4 border-[#00b4d8] border-t-transparent rounded-full animate-spin" />
-        </div>
-      }>
+      <Suspense
+        fallback={
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="w-10 h-10 border-4 border-[#00b4d8] border-t-transparent rounded-full animate-spin" />
+          </div>
+        }
+      >
         <Component {...props} />
       </Suspense>
     </ErrorBoundary>
@@ -343,12 +570,23 @@ const PortalInDevelopment = ({ title }) => (
       </div>
       <h2 className="text-2xl font-black text-[#03045e] mb-4">{title}</h2>
       <p className="text-gray-500 font-bold mb-8 leading-relaxed">
-        The {title} is currently under construction. Future updates will include system-wide fee management, transport logistics, and user administration.
+        The {title} is currently under construction. Future updates will include
+        system-wide fee management, transport logistics, and user
+        administration.
       </p>
       <div className="flex gap-2">
-        <div className="w-2 h-2 rounded-full bg-[#00b4d8] animate-bounce" style={{ animationDelay: "0s" }} />
-        <div className="w-2 h-2 rounded-full bg-[#00b4d8] animate-bounce" style={{ animationDelay: "0.2s" }} />
-        <div className="w-2 h-2 rounded-full bg-[#00b4d8] animate-bounce" style={{ animationDelay: "0.4s" }} />
+        <div
+          className="w-2 h-2 rounded-full bg-[#00b4d8] animate-bounce"
+          style={{ animationDelay: "0s" }}
+        />
+        <div
+          className="w-2 h-2 rounded-full bg-[#00b4d8] animate-bounce"
+          style={{ animationDelay: "0.2s" }}
+        />
+        <div
+          className="w-2 h-2 rounded-full bg-[#00b4d8] animate-bounce"
+          style={{ animationDelay: "0.4s" }}
+        />
       </div>
     </MainCard>
   </div>
@@ -367,29 +605,32 @@ function AppContent() {
   const { data: notifications } = useService(getNotifications);
   const navigate = useNavigate();
 
-  const handlePageNavigation = useCallback((pageId) => {
-    if (pageId.startsWith("subject_")) {
-      const subjectId = pageId.split("_")[1];
-      navigate(`/${role?.toLowerCase()}/subjects/${subjectId}`);
-      return;
-    }
-    switch (pageId) {
-      case "feeDetails":
-        navigate(`/${role?.toLowerCase()}/fees`);
-        break;
-      case "assignments":
-        navigate(`/${role?.toLowerCase()}/assignments`);
-        break;
-      case "courses":
-        navigate(`/${role?.toLowerCase()}/subjects`);
-        break;
-      case "profile":
-        navigate(`/${role?.toLowerCase()}/profile`);
-        break;
-      default:
-        navigate(`/${role?.toLowerCase()}/dashboard`);
-    }
-  }, [navigate, role]);
+  const handlePageNavigation = useCallback(
+    (pageId) => {
+      if (pageId.startsWith("subject_")) {
+        const subjectId = pageId.split("_")[1];
+        navigate(`/${role?.toLowerCase()}/subjects/${subjectId}`);
+        return;
+      }
+      switch (pageId) {
+        case "feeDetails":
+          navigate(`/${role?.toLowerCase()}/fees`);
+          break;
+        case "assignments":
+          navigate(`/${role?.toLowerCase()}/assignments`);
+          break;
+        case "courses":
+          navigate(`/${role?.toLowerCase()}/subjects`);
+          break;
+        case "profile":
+          navigate(`/${role?.toLowerCase()}/profile`);
+          break;
+        default:
+          navigate(`/${role?.toLowerCase()}/dashboard`);
+      }
+    },
+    [navigate, role],
+  );
 
   if (!isAuthenticated) {
     return (
@@ -421,21 +662,76 @@ function AppContent() {
           />
         }
       >
-        <Route path="dashboard" element={<LazyRoute Component={HomePage} onNavigatePage={handlePageNavigation} />} />
-        <Route path="assignments" element={<LazyRoute Component={AssignmentsPage} />} />
-        <Route path="subjects" element={<LazyRoute Component={CoursesPage} onNavigatePage={handlePageNavigation} />} />
-        <Route path="subjects/:subjectId" element={<LazyRoute Component={SubjectDetailPage} />} />
-        <Route path="timetable" element={<LazyRoute Component={WeeklyTimetablePage} />} />
-        <Route path="examinations" element={<LazyRoute Component={ExaminationPage} />} />
+        <Route
+          path="dashboard"
+          element={
+            <LazyRoute
+              Component={HomePage}
+              onNavigatePage={handlePageNavigation}
+            />
+          }
+        />
+        <Route
+          path="assignments"
+          element={<LazyRoute Component={AssignmentsPage} />}
+        />
+        <Route
+          path="subjects"
+          element={
+            <LazyRoute
+              Component={CoursesPage}
+              onNavigatePage={handlePageNavigation}
+            />
+          }
+        />
+        <Route
+          path="subjects/:subjectId"
+          element={<LazyRoute Component={SubjectDetailPage} />}
+        />
+        <Route
+          path="timetable"
+          element={<LazyRoute Component={WeeklyTimetablePage} />}
+        />
+        <Route
+          path="examinations"
+          element={<LazyRoute Component={ExaminationPage} />}
+        />
         <Route path="fees" element={<LazyRoute Component={FeeDetailsPage} />} />
-        <Route path="transport" element={<LazyRoute Component={TransportPage} />} />
-        <Route path="clubs" element={<LazyRoute Component={ClubsCommitteesPage} />} />
-        <Route path="mentor-support" element={<LazyRoute Component={MentorSupportPage} />} />
-        <Route path="documents" element={<LazyRoute Component={DocumentsPage} />} />
-        <Route path="achievements" element={<LazyRoute Component={AchievementsPage} />} />
-        <Route path="calendar" element={<LazyRoute Component={SchoolCalendarPage} />} />
-        <Route path="profile" element={<LazyRoute Component={StudentProfilePage} onNavigatePage={handlePageNavigation} />} />
+        <Route
+          path="transport"
+          element={<LazyRoute Component={TransportPage} />}
+        />
+        <Route
+          path="clubs"
+          element={<LazyRoute Component={ClubsCommitteesPage} />}
+        />
+        <Route
+          path="mentor-support"
+          element={<LazyRoute Component={MentorSupportPage} />}
+        />
+        <Route
+          path="documents"
+          element={<LazyRoute Component={DocumentsPage} />}
+        />
+        <Route
+          path="achievements"
+          element={<LazyRoute Component={AchievementsPage} />}
+        />
+        <Route
+          path="calendar"
+          element={<LazyRoute Component={SchoolCalendarPage} />}
+        />
+        <Route
+          path="profile"
+          element={
+            <LazyRoute
+              Component={StudentProfilePage}
+              onNavigatePage={handlePageNavigation}
+            />
+          }
+        />
         <Route path="faculty" element={<LazyRoute Component={FacultyPage} />} />
+        <Route path="leave" element={<LazyRoute Component={LeavePage} />} />
       </Route>
 
       {/* Parent Portal Routes */}
@@ -449,19 +745,68 @@ function AppContent() {
           />
         }
       >
-        <Route path="dashboard" element={<LazyRoute Component={HomePage} onNavigatePage={handlePageNavigation} />} />
-        <Route path="assignments" element={<LazyRoute Component={AssignmentsPage} />} />
-        <Route path="subjects" element={<LazyRoute Component={CoursesPage} onNavigatePage={handlePageNavigation} />} />
-        <Route path="subjects/:subjectId" element={<LazyRoute Component={SubjectDetailPage} />} />
-        <Route path="timetable" element={<LazyRoute Component={WeeklyTimetablePage} />} />
-        <Route path="examinations" element={<LazyRoute Component={ExaminationPage} />} />
+        <Route
+          path="dashboard"
+          element={
+            <LazyRoute
+              Component={HomePage}
+              onNavigatePage={handlePageNavigation}
+            />
+          }
+        />
+        <Route
+          path="assignments"
+          element={<LazyRoute Component={AssignmentsPage} />}
+        />
+        <Route
+          path="subjects"
+          element={
+            <LazyRoute
+              Component={CoursesPage}
+              onNavigatePage={handlePageNavigation}
+            />
+          }
+        />
+        <Route
+          path="subjects/:subjectId"
+          element={<LazyRoute Component={SubjectDetailPage} />}
+        />
+        <Route
+          path="timetable"
+          element={<LazyRoute Component={WeeklyTimetablePage} />}
+        />
+        <Route
+          path="examinations"
+          element={<LazyRoute Component={ExaminationPage} />}
+        />
         <Route path="fees" element={<LazyRoute Component={FeeDetailsPage} />} />
-        <Route path="transport" element={<LazyRoute Component={TransportPage} />} />
-        <Route path="mentor-support" element={<LazyRoute Component={MentorSupportPage} />} />
-        <Route path="documents" element={<LazyRoute Component={DocumentsPage} />} />
-        <Route path="achievements" element={<LazyRoute Component={AchievementsPage} />} />
-        <Route path="profile" element={<LazyRoute Component={StudentProfilePage} onNavigatePage={handlePageNavigation} />} />
+        <Route
+          path="transport"
+          element={<LazyRoute Component={TransportPage} />}
+        />
+        <Route
+          path="mentor-support"
+          element={<LazyRoute Component={MentorSupportPage} />}
+        />
+        <Route
+          path="documents"
+          element={<LazyRoute Component={DocumentsPage} />}
+        />
+        <Route
+          path="achievements"
+          element={<LazyRoute Component={AchievementsPage} />}
+        />
+        <Route
+          path="profile"
+          element={
+            <LazyRoute
+              Component={StudentProfilePage}
+              onNavigatePage={handlePageNavigation}
+            />
+          }
+        />
         <Route path="faculty" element={<LazyRoute Component={FacultyPage} />} />
+        <Route path="leave" element={<LazyRoute Component={LeavePage} />} />
       </Route>
 
       {/* Teacher Portal Routes */}
@@ -475,17 +820,46 @@ function AppContent() {
           />
         }
       >
-        <Route path="dashboard" element={<LazyRoute Component={TeacherDashboard} />} />
-        <Route path="attendance" element={<LazyRoute Component={AttendanceMgmtPage} />} />
-        <Route path="assignments" element={<LazyRoute Component={AssignmentsManagementPage} />} />
-        <Route path="marks" element={<LazyRoute Component={MarksExamsPage} />} />
-        <Route path="timetable" element={<LazyRoute Component={ClassTimetablePage} />} />
-        <Route path="students" element={<LazyRoute Component={StudentPerfPage} />} />
-        <Route path="mentorship" element={<LazyRoute Component={TeacherMentorSupportPage} />} />
-        <Route path="announcements" element={<LazyRoute Component={AnnouncementsPage} />} />
-        <Route path="clubs" element={<LazyRoute Component={ClubsActivitiesPage} />} />
-        <Route path="reports" element={<LazyRoute Component={ReportsAnalyticsPage} />} />
-        <Route path="profile-settings" element={<LazyRoute Component={ProfileSettingsPage} />} />
+        <Route
+          path="dashboard"
+          element={<LazyRoute Component={TeacherDashboard} />}
+        />
+        <Route
+          path="assignments"
+          element={<LazyRoute Component={AssignmentsManagementPage} />}
+        />
+        <Route
+          path="marks"
+          element={<LazyRoute Component={MarksExamsPage} />}
+        />
+        <Route
+          path="timetable"
+          element={<LazyRoute Component={ClassTimetablePage} />}
+        />
+        <Route
+          path="students"
+          element={<LazyRoute Component={StudentPerfPage} />}
+        />
+        <Route
+          path="mentorship"
+          element={<LazyRoute Component={TeacherMentorSupportPage} />}
+        />
+        <Route
+          path="class-updates"
+          element={<LazyRoute Component={AnnouncementsPage} />}
+        />
+        <Route
+          path="clubs"
+          element={<LazyRoute Component={ClubsActivitiesPage} />}
+        />
+        <Route
+          path="profile-settings"
+          element={<LazyRoute Component={ProfileSettingsPage} />}
+        />
+        <Route
+          path="leave-management"
+          element={<LazyRoute Component={LeaveMgmtPage} />}
+        />
       </Route>
 
       {/* Admin Portal Routes */}
@@ -499,12 +873,104 @@ function AppContent() {
           />
         }
       >
-        <Route path="dashboard" element={<LazyRoute Component={AdminDashboard} />} />
-        <Route path="fee-mgmt" element={<LazyRoute Component={PortalInDevelopment} title="Fee Management" />} />
-        <Route path="transport-mgmt" element={<LazyRoute Component={PortalInDevelopment} title="Transport Management" />} />
-        <Route path="announcements" element={<LazyRoute Component={PortalInDevelopment} title="Announcements" />} />
-        <Route path="administration" element={<LazyRoute Component={PortalInDevelopment} title="Administration" />} />
-        <Route path="profile" element={<LazyRoute Component={PortalInDevelopment} title="Profile Settings" />} />
+        <Route
+          path="dashboard"
+          element={<LazyRoute Component={AdminDashboard} />}
+        />
+        <Route
+          path="students"
+          element={<LazyRoute Component={StudentsPage} />}
+        />
+        <Route
+          path="teachers"
+          element={<LazyRoute Component={TeachersPage} />}
+        />
+        <Route path="parents" element={<LazyRoute Component={ParentsPage} />} />
+        <Route path="admins" element={<LazyRoute Component={AdminsPage} />} />
+        <Route path="classes" element={<LazyRoute Component={ClassesPage} />} />
+        <Route
+          path="subjects"
+          element={<LazyRoute Component={SubjectsPage} />}
+        />
+        <Route
+          path="subject-alloc"
+          element={<LazyRoute Component={SubjectAllocationPage} />}
+        />
+        <Route
+          path="academic-structure"
+          element={<LazyRoute Component={AcademicStructurePage} />}
+        />
+        <Route
+          path="timetable"
+          element={<LazyRoute Component={TimetablePage} />}
+        />
+        <Route
+          path="exams"
+          element={<LazyRoute Component={ExaminationsPage} />}
+        />
+        <Route path="results" element={<LazyRoute Component={ResultsPage} />} />
+        <Route
+          path="academic-performance"
+          element={<LazyRoute Component={AcademicPerformancePage} />}
+        />
+        <Route
+          path="attendance"
+          element={<LazyRoute Component={AttendanceOverviewPage} />}
+        />
+        <Route
+          path="leaves"
+          element={<LazyRoute Component={LeaveApprovalsPage} />}
+        />
+        <Route
+          path="transport"
+          element={<LazyRoute Component={TransportManagementPage} />}
+        />
+        <Route
+          path="fees"
+          element={<LazyRoute Component={FeeManagementPage} />}
+        />
+        <Route
+          path="documents"
+          element={<LazyRoute Component={AdminDocumentsPage} />}
+        />
+        <Route
+          path="clubs"
+          element={<LazyRoute Component={AdminClubsPage} />}
+        />
+        <Route
+          path="committees"
+          element={<LazyRoute Component={AdminCommitteesPage} />}
+        />
+        <Route
+          path="achievements"
+          element={<LazyRoute Component={AdminAchievementsPage} />}
+        />
+        <Route
+          path="calendar"
+          element={<LazyRoute Component={AdminSchoolCalendarPage} />}
+        />
+        <Route
+          path="announcements"
+          element={<LazyRoute Component={AdminAnnouncementsPage} />}
+        />
+        <Route path="notices" element={<LazyRoute Component={NoticesPage} />} />
+        <Route
+          path="analytics-workload"
+          element={<LazyRoute Component={WorkloadAnalyticsPage} />}
+        />
+        <Route
+          path="profile"
+          element={<LazyRoute Component={AdminProfilePage} />}
+        />
+        <Route
+          path="school-settings"
+          element={
+            <LazyRoute
+              Component={PortalInDevelopment}
+              title="School Settings"
+            />
+          }
+        />
       </Route>
 
       {/* Auth Route */}
@@ -517,8 +983,24 @@ function AppContent() {
 }
 
 function App() {
+  const [resetCounter, setResetCounter] = useState(0);
+
+  useEffect(() => {
+    const handleReset = () => {
+      setResetCounter((prev) => prev + 1);
+    };
+    window.addEventListener("erp-reset-event", handleReset);
+    return () => window.removeEventListener("erp-reset-event", handleReset);
+  }, []);
+
+  useEffect(() => {
+    // Start the notice scheduler on app initialization
+    startNoticeScheduler();
+    console.log("[App] Notice scheduler started");
+  }, []);
+
   return (
-    <BrowserRouter>
+    <BrowserRouter key={resetCounter}>
       <AuthProvider>
         <LanguageProvider>
           <StudentProvider>
