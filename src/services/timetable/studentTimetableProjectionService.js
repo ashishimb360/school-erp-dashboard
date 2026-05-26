@@ -1,4 +1,5 @@
 import { studentTimetableService } from "./studentTimetableService";
+import { getDataProvider } from "../../data";
 
 /**
  * Creates a centralized empty projection for the timetable.
@@ -32,14 +33,35 @@ export const buildStudentTimetableProjection = async (studentId) => {
     return createEmptyTimetableProjection();
   }
 
+  const provider = getDataProvider();
+  const subjects = await provider.getSubjects();
+  const teachers = await provider.getTeachers();
+
+  const resolveNames = (slot) => {
+    if (!slot) return slot;
+    const sub = subjects.find((x) => x.id === slot.subjectId);
+    const teach = teachers.find((x) => x.id === slot.teacherId);
+
+    let resolvedSubject = slot.subject || (sub ? sub.name : "");
+    if (slot.subjectId === "sub-homeroom") {
+      resolvedSubject = "Homeroom / Class Teacher Period";
+    }
+
+    return {
+      ...slot,
+      subject: resolvedSubject,
+      teacher: slot.teacher || (teach ? teach.metadata?.name || teach.name : ""),
+    };
+  };
+
   const rawWeekly = timetable.weeklySchedule || {};
 
   const weekly = {
-    Monday: rawWeekly.monday || [],
-    Tuesday: rawWeekly.tuesday || [],
-    Wednesday: rawWeekly.wednesday || [],
-    Thursday: rawWeekly.thursday || [],
-    Friday: rawWeekly.friday || [],
+    Monday: (rawWeekly.monday || []).map(resolveNames),
+    Tuesday: (rawWeekly.tuesday || []).map(resolveNames),
+    Wednesday: (rawWeekly.wednesday || []).map(resolveNames),
+    Thursday: (rawWeekly.thursday || []).map(resolveNames),
+    Friday: (rawWeekly.friday || []).map(resolveNames),
   };
 
   const days = [
