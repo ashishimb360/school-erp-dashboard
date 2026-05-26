@@ -24,7 +24,7 @@ Welcome to the **EduDash ERP** engineering guide. This is the single source of t
 
 We have prepared deep-dive technical documents for developers and backend engineers. Before contributing or modifying the architecture, please review the relevant documentation:
 
-- [**TECHNICAL_REFERENCE.md**](./TECHNICAL_REFERENCE.md): The absolute master source of truth for the entire architecture, entity field schemas, MockDB engine capabilities, event workflows, and detailed service layers.
+- [**TECHNICAL_REFERENCE.md**](./docs/TECHNICAL_REFERENCE.md): The absolute master source of truth for the entire architecture, entity field schemas, MockDB engine capabilities, event workflows, and detailed service layers.
 - [**docs/BACKEND_MIGRATION/**](./docs/BACKEND_MIGRATION): A suite of documents explicitly detailing how to swap the frontend MockDB for a real backend (Node/Python/Java).
   - `API_PROVIDER_MAPPING.md`: Maps frontend service methods to required REST endpoints.
   - `DATABASE_TABLE_STRUCTURE.md`: Recommended PostgreSQL/MySQL schema tables.
