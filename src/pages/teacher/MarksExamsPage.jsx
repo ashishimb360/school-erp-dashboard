@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "../../context/AuthContext";
 import {
-  getTeacherWorkload,
+  getTeacherProfile,
   getStudentsInClass,
   getMarksForClass,
   submitMarks,
@@ -45,21 +45,20 @@ const MarksExamsPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [workloadData, examData, subjectData] = await Promise.all([
-          getTeacherWorkload(user.linkedEntityId),
+        const [profileData, examData, subjectData] = await Promise.all([
+          getTeacherProfile(user.linkedEntityId),
           getExams(),
           getSubjects(),
         ]);
-        setWorkload(workloadData);
+        setWorkload(profileData);
         setExams(examData);
         setSubjects(subjectData);
 
         // Auto-select first class/subject/exam if available
-        if (workloadData?.classes?.length > 0) {
-          setSelectedClass(workloadData.classes[0].id);
-        }
-        if (workloadData?.profile?.subjectIds?.length > 0) {
-          setSelectedSubject(workloadData.profile.subjectIds[0]);
+        const assigned = profileData?.assignedSubjects || [];
+        if (assigned.length > 0) {
+          setSelectedClass(assigned[0].classId);
+          setSelectedSubject(assigned[0].subjectId);
         }
         if (examData.length > 0) {
           setSelectedExam(examData[0].id);
@@ -109,12 +108,24 @@ const MarksExamsPage = () => {
     fetchStudentsAndMarks();
   }, [selectedClass, selectedSubject, selectedExam]);
 
+  // Update subject selection when class changes
+  useEffect(() => {
+    if (selectedClass && workload?.assignedSubjects) {
+      const classSubjects = workload.assignedSubjects.filter(a => a.classId === selectedClass);
+      if (classSubjects.length > 0 && !classSubjects.some(a => a.subjectId === selectedSubject)) {
+        setSelectedSubject(classSubjects[0].subjectId);
+      } else if (classSubjects.length === 0) {
+        setSelectedSubject("");
+      }
+    }
+  }, [selectedClass, workload]);
+
   const activeExamObj = useMemo(() => {
     return exams.find((e) => e.id === selectedExam);
   }, [exams, selectedExam]);
 
   const isEvaluationActive = useMemo(() => {
-    return activeExamObj?.status === "evaluation";
+    return activeExamObj?.status === "evaluation" || activeExamObj?.status === "Completed";
   }, [activeExamObj]);
 
   // Reset published state when selection changes
@@ -278,9 +289,9 @@ const MarksExamsPage = () => {
               className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50/50 text-[#03045e] font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none transition-all cursor-pointer"
             >
               <option value="">Select Class</option>
-              {workload?.classes?.map((c) => (
+              {Array.from(new Map(workload?.assignedSubjects?.map(a => [a.classId, { id: a.classId, displayName: a.displayName }])).values()).map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.displayName || `${c.name} — Section ${c.section}`}
+                  {c.displayName}
                 </option>
               ))}
             </select>
@@ -297,14 +308,11 @@ const MarksExamsPage = () => {
               className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50/50 text-[#03045e] font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none transition-all cursor-pointer"
             >
               <option value="">Select Subject</option>
-              {workload?.profile?.subjectIds?.map((subId) => {
-                const sub = subjects.find((s) => s.id === subId);
-                return (
-                  <option key={subId} value={subId}>
-                    {sub?.name || subId}
-                  </option>
-                );
-              })}
+              {workload?.assignedSubjects?.filter(a => a.classId === selectedClass).map((sub) => (
+                <option key={sub.subjectId} value={sub.subjectId}>
+                  {sub.subjectName || sub.subjectId}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -384,7 +392,7 @@ const MarksExamsPage = () => {
               >
                 <AlertCircle className="shrink-0 w-5 h-5 text-amber-500" />
                 <span>
-                  <strong>Marks Entry Closed:</strong> Marks entry is locked because the selected exam cycle is not in its active <strong>Evaluation</strong> lifecycle phase.
+                  <strong>Marks Entry Closed:</strong> Marks entry is locked because the selected exam cycle is not active.
                 </span>
               </motion.div>
             )}

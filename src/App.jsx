@@ -82,6 +82,7 @@ const LeaveMgmtPage = lazy(() => import("./pages/teacher/LeaveMgmtPage"));
 // Admin Portal Pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const StudentsPage = lazy(() => import("./pages/admin/StudentsPage"));
+const StudentDetailsAdminPage = lazy(() => import("./pages/admin/StudentDetailsPage"));
 const TeachersPage = lazy(() => import("./pages/admin/TeachersPage"));
 const ParentsPage = lazy(() => import("./pages/admin/ParentsPage"));
 const AdminsPage = lazy(() => import("./pages/admin/AdminsPage"));
@@ -905,6 +906,10 @@ function AppContent() {
         <Route
           path="students"
           element={<LazyRoute Component={StudentsPage} />}
+        />
+        <Route
+          path="students/:id"
+          element={<LazyRoute Component={StudentDetailsAdminPage} />}
         />
         <Route
           path="teachers"

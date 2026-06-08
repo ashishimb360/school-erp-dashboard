@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   UserPlus,
@@ -14,13 +15,12 @@ import AdminStatCard from "../../components/admin/AdminStatCard";
 import AdminFilterBar from "../../components/admin/AdminFilterBar";
 import AdminDataTable from "../../components/admin/AdminDataTable";
 import AdminSectionCard from "../../components/admin/AdminSectionCard";
-import AdminProfilePreview from "../../components/admin/AdminProfilePreview";
+
 import AdminEditForm from "../../components/admin/AdminEditForm";
 import ConfirmationModal from "../../components/shared/ConfirmationModal";
 import ToastNotification from "../../components/shared/ToastNotification";
 import LoadingSkeleton from "../../components/shared/LoadingSkeleton";
-import ChartWrapper from "../../components/shared/ChartWrapper";
-import ActivityFeed from "../../components/shared/ActivityFeed";
+
 import {
   getAllStudents,
   updateStudentProfile,
@@ -31,6 +31,7 @@ import {
 import { formatClassName, isSeniorSecondary } from "../../utils/classIdentity";
 
 const StudentsPage = () => {
+  const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterClass, setFilterClass] = useState("");
@@ -39,30 +40,9 @@ const StudentsPage = () => {
   const [loading, setLoading] = useState(true);
   const [showInactive, setShowInactive] = useState(false);
 
-  // Manual activity feed (no auto-sync, human language only)
-  const [activities] = useState([
-    {
-      type: "student",
-      description: "New student admitted to Class 10-A",
-      timestamp: Date.now() - 1000 * 60 * 30,
-      user: "Admin",
-    },
-    {
-      type: "student",
-      description: "Student profile updated for admission STU-045",
-      timestamp: Date.now() - 1000 * 60 * 120,
-      user: "Admin",
-    },
-    {
-      type: "student",
-      description: "Student deactivated from Class 12-B",
-      timestamp: Date.now() - 1000 * 60 * 240,
-      user: "Admin",
-    },
-  ]);
+
 
   // Preview & Edit states
-  const [previewStudent, setPreviewStudent] = useState(null);
   const [editStudent, setEditStudent] = useState(null);
   const [addStudentOpen, setAddStudentOpen] = useState(false);
 
@@ -303,36 +283,7 @@ const StudentsPage = () => {
     };
   }, [students]);
 
-  // Chart data (component-level, no service)
-  const classDistributionData = useMemo(
-    () => [
-      { name: "Foundation", value: analytics.foundation },
-      { name: "Primary", value: analytics.primary },
-      { name: "Middle", value: analytics.middle },
-      { name: "Secondary", value: analytics.secondary },
-      { name: "Senior Secondary", value: analytics.seniorSecondary },
-    ],
-    [analytics],
-  );
 
-  const genderDistributionData = useMemo(
-    () => [
-      { name: "Male", value: analytics.male },
-      { name: "Female", value: analytics.female },
-      { name: "Other", value: analytics.other },
-    ],
-    [analytics],
-  );
-
-  const categoryDistributionData = useMemo(
-    () => [
-      { name: "General", value: analytics.general },
-      { name: "OBC", value: analytics.obc },
-      { name: "SC", value: analytics.sc },
-      { name: "ST", value: analytics.st },
-    ],
-    [analytics],
-  );
 
   const studentFields = [
     { name: "name", label: "Student Full Name", type: "text", required: true },
@@ -579,7 +530,7 @@ const StudentsPage = () => {
                   </td>
                   <td className="py-4 px-3">
                     <button
-                      onClick={() => setPreviewStudent(stu)}
+                      onClick={() => navigate(`/admin/students/${stu.id}`)}
                       className="hover:text-[#0077b6] text-left transition-colors font-extrabold focus:outline-none"
                     >
                       {stu.name}
@@ -619,7 +570,7 @@ const StudentsPage = () => {
                   <td className="py-4 px-3 text-right last:pr-2">
                     <div className="flex items-center justify-end gap-1">
                       <button
-                        onClick={() => setPreviewStudent(stu)}
+                        onClick={() => navigate(`/admin/students/${stu.id}`)}
                         className="text-[#0077b6] hover:text-[#03045e] transition-colors p-1.5 hover:bg-[#caf0f8]/40 rounded-lg"
                       >
                         <ChevronRight size={16} />
@@ -641,15 +592,6 @@ const StudentsPage = () => {
           />
         </div>
       </AdminSectionCard>
-
-      {/* Sliding Profile Drawer */}
-      <AdminProfilePreview
-        isOpen={!!previewStudent}
-        onClose={() => setPreviewStudent(null)}
-        type="student"
-        data={previewStudent}
-        onEdit={(studentData) => setEditStudent(studentData)}
-      />
 
       {/* Centred Edit Modal */}
       <AdminEditForm

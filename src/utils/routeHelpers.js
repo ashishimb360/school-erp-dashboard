@@ -175,6 +175,9 @@ export function isNavItemActive(id, role, pathname) {
     // Both courses overview and individual subject details map to the courses sidebar item
     return pathname.startsWith(targetRoute);
   }
+  if (id === "admin_students") {
+    return pathname === targetRoute || pathname.startsWith(`${targetRoute}/`);
+  }
 
   return pathname === targetRoute;
 }

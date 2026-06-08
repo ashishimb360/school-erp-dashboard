@@ -97,6 +97,7 @@ export const getStudentProfile = async (studentId) => {
       house: student.houseGroup || "Saturn (Blue)",
       admissionDate:
         student.admissionDate || student.enrollDate || "2024-04-05",
+      performance: student.performance,
     },
     family: {
       father: {

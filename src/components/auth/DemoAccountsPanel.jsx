@@ -107,24 +107,30 @@ const DemoAccountsPanel = ({ selectedRole, onSelectAccount }) => {
           (teacherType === "subject" && !a.isClassTeacher);
         const classOk = (() => {
           if (!teacherFilter.level) return true;
+          
+          const levelMatches = (id) => extractLevel(id).toLowerCase() === teacherFilter.level.toLowerCase();
+          const sectionMatches = (id) => extractSection(id).toUpperCase() === teacherFilter.section.toUpperCase();
+          const isAllClasses = (id) => id?.toLowerCase().includes("all");
+
           // For Class Teacher filter: match the class they ARE CT of, not just where they teach
           if (teacherType === "class" && a.isClassTeacher) {
             const ctId = a.classTeacherOfClassId || "";
+            if (isAllClasses(ctId)) return true;
+            
             if (teacherFilter.section) {
-              const target = `class-${teacherFilter.level}${teacherFilter.section.toLowerCase()}`;
-              return ctId === target;
+              return levelMatches(ctId) && sectionMatches(ctId);
             }
-            return extractLevel(ctId).toLowerCase() === teacherFilter.level;
+            return levelMatches(ctId);
           }
+          
           // For Subject Teachers / All: match any class they teach
           const ids = a.assignedClassIds || [];
+          if (ids.some(isAllClasses)) return true;
+          
           if (teacherFilter.section) {
-            const target = `class-${teacherFilter.level}${teacherFilter.section.toLowerCase()}`;
-            return ids.includes(target);
+            return ids.some((id) => levelMatches(id) && sectionMatches(id));
           }
-          return ids.some((id) => {
-            return extractLevel(id).toLowerCase() === teacherFilter.level;
-          });
+          return ids.some(levelMatches);
         })();
         return typeOk && classOk;
       });
