@@ -1,4 +1,4 @@
-import { MockDB } from "../mockDB";
+import { MockDB } from "../data/mockDB";
 import { getItem } from "../persistence/storage";
 import { STORAGE_KEYS } from "../persistence/storageKeys";
 

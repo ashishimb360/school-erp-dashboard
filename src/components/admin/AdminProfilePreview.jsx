@@ -10,7 +10,7 @@ import {
   Users,
   Edit3,
 } from "lucide-react";
-import { formatClassLevel, isSeniorSecondary } from "../../utils/classIdentity";
+import { formatClassLevel, isSeniorSecondary } from "../../shared/utils/classIdentity";
 
 /**
  * AdminProfilePreview

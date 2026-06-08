@@ -799,8 +799,8 @@ const TimetablePage = () => {
                   className="w-full md:w-52 px-4 py-2.5 rounded-2xl border border-[#caf0f8] text-xs font-bold text-[#03045e] outline-none bg-white hover:border-[#0077b6] transition-colors cursor-pointer"
                 >
                   {teachers.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
+                    <option key={t.id || t.teacherId} value={t.id || t.teacherId}>
+                      {t.teacherName || t.name || "Unknown Teacher"}
                     </option>
                   ))}
                 </select>

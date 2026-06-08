@@ -13,7 +13,7 @@ import {
   isValidStream,
   SUBJECT_TYPES,
 } from "../data/subjectArchitecture";
-import { isSeniorSecondary } from "../utils/classIdentity";
+import { isSeniorSecondary } from "../shared/utils/classIdentity";
 import { getDataProvider } from "../data";
 import { studentTimetableProjectionService } from "./timetable";
 

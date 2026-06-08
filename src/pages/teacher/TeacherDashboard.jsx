@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import TeacherIdentityCard from "../../components/teacherHome/TeacherIdentityCard";
-import MyClassPanel from "../../components/teacherHome/MyClassPanel";
-import MyTeachingSchedule from "../../components/teacherHome/MyTeachingSchedule";
-import MyClassSchedule from "../../components/teacherHome/MyClassSchedule";
-import TeacherActionCenter from "../../components/teacherHome/TeacherActionCenter";
-import QuickActionsPanel from "../../components/teacherHome/QuickActionsPanel";
+import TeacherIdentityCard from "../../components/teacher/TeacherIdentityCard";
+import MyClassPanel from "../../components/teacher/MyClassPanel";
+import MyTeachingSchedule from "../../components/teacher/MyTeachingSchedule";
+import MyClassSchedule from "../../components/teacher/MyClassSchedule";
+import TeacherActionCenter from "../../components/teacher/TeacherActionCenter";
+import QuickActionsPanel from "../../components/teacher/QuickActionsPanel";
 import NoticeBoard from "../../components/NoticeBoard";
 import { teacherDashboardService } from "../../services/teacherDashboardService";
 import { useAuth } from "../../context/AuthContext";
@@ -12,9 +12,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2 } from "lucide-react";
 
 // Progressive Loading Skeletons
-import DashboardCardSkeleton from "../../components/common/skeletons/DashboardCardSkeleton";
-import ScheduleSkeleton from "../../components/common/skeletons/ScheduleSkeleton";
-import ActionCenterSkeleton from "../../components/common/skeletons/ActionCenterSkeleton";
+import DashboardCardSkeleton from "../../shared/components/skeletons/DashboardCardSkeleton";
+import ScheduleSkeleton from "../../shared/components/skeletons/ScheduleSkeleton";
+import ActionCenterSkeleton from "../../shared/components/skeletons/ActionCenterSkeleton";
 
 // Isolate Widget Render Trees to prevent full-page rerender cascades
 const MemoizedTeacherIdentityCard = React.memo(TeacherIdentityCard);

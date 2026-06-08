@@ -22,12 +22,12 @@ import AdminSectionCard from "../../components/admin/AdminSectionCard";
 import AdminDataTable from "../../components/admin/AdminDataTable";
 import AdminEditForm from "../../components/admin/AdminEditForm";
 import StatusBadge from "../../components/admin/operations/StatusBadge";
-import ConfirmationModal from "../../components/shared/ConfirmationModal";
-import ToastNotification from "../../components/shared/ToastNotification";
-import LoadingSkeleton from "../../components/shared/LoadingSkeleton";
-import ChartWrapper from "../../components/shared/ChartWrapper";
+import ConfirmationModal from "../../shared/components/ConfirmationModal";
+import ToastNotification from "../../shared/components/ToastNotification";
+import LoadingSkeleton from "../../shared/components/LoadingSkeleton";
+import ChartWrapper from "../../shared/components/ChartWrapper";
 import { getDataProvider } from "../../data";
-import { formatClassLevel } from "../../utils/classIdentity";
+import { formatClassLevel } from "../../shared/utils/classIdentity";
 import {
   addFee,
   deleteFee,

@@ -1,7 +1,7 @@
 import { getDataProvider } from "../data";
 import { getCourses } from "./academicsService";
 import { clearServiceCache } from "../hooks/useService";
-import { formatClassName, extractLevel, extractSection } from "../utils/classIdentity";
+import { formatClassName, extractLevel, extractSection } from "../shared/utils/classIdentity";
 
 /**
  * assignmentService.js

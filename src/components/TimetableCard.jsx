@@ -21,7 +21,7 @@ import HelperPopup from "./HelperPopup";
 import HelperButton from "./HelperButton";
 import { AnimatePresence } from "framer-motion";
 import ParentInsight from "./ParentInsight";
-import { MiniDatePicker } from "./common/MiniDatePicker";
+import { MiniDatePicker } from "../shared/components/MiniDatePicker";
 
 // All variants at module level — never recreated
 const cardVariants = {
@@ -504,3 +504,4 @@ function TimetableCard({ weeklyTimetable = {}, isConfigured = true }) {
 }
 
 export default TimetableCard;
+

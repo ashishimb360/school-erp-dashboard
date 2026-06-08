@@ -1,5 +1,5 @@
 import { getDataProvider } from "../data";
-import { formatClassName, extractLevel, extractSection } from "../utils/classIdentity";
+import { formatClassName, extractLevel, extractSection } from "../shared/utils/classIdentity";
 
 /**
  * services/clubsService.js

@@ -9,7 +9,7 @@ import {
   AlertTriangle,
   Clock,
 } from "lucide-react";
-import { getFeeStatusStyle, getFeeProgress } from "../utils/attendanceHelpers";
+import { getFeeStatusStyle, getFeeProgress } from "../shared/utils/attendanceHelpers";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import HelperPopup from "./HelperPopup";

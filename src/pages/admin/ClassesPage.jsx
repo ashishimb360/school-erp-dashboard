@@ -26,11 +26,11 @@ import AdminSectionCard from "../../components/admin/AdminSectionCard";
 import AdminEditForm from "../../components/admin/AdminEditForm";
 import AdminSubjectMappingTable from "../../components/admin/academic/AdminSubjectMappingTable";
 import TimetableGrid from "../../components/admin/academic/TimetableGrid";
-import ConfirmationModal from "../../components/shared/ConfirmationModal";
-import ToastNotification from "../../components/shared/ToastNotification";
-import LoadingSkeleton from "../../components/shared/LoadingSkeleton";
-import ChartWrapper from "../../components/shared/ChartWrapper";
-import ActivityFeed from "../../components/shared/ActivityFeed";
+import ConfirmationModal from "../../shared/components/ConfirmationModal";
+import ToastNotification from "../../shared/components/ToastNotification";
+import LoadingSkeleton from "../../shared/components/LoadingSkeleton";
+import ChartWrapper from "../../shared/components/ChartWrapper";
+import ActivityFeed from "../../shared/components/ActivityFeed";
 import { getDataProvider } from "../../data";
 import {
   changeClassTeacher,

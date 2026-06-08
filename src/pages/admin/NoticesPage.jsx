@@ -11,7 +11,7 @@ import {
   NOTICE_PRIORITIES,
   NOTICE_CATEGORIES,
   AUDIENCE_TYPES,
-} from "../../mockDB/seed/notices";
+} from "../../data/mockDB/seed/notices";
 import {
   Bell,
   Filter,
@@ -29,10 +29,10 @@ import AdminStatCard from "../../components/admin/AdminStatCard";
 import AdminFilterBar from "../../components/admin/AdminFilterBar";
 import MainCard from "../../components/MainCard";
 import AdminEditForm from "../../components/admin/AdminEditForm";
-import ConfirmationModal from "../../components/shared/ConfirmationModal";
-import ToastNotification from "../../components/shared/ToastNotification";
-import LoadingSkeleton from "../../components/shared/LoadingSkeleton";
-import ChartWrapper from "../../components/shared/ChartWrapper";
+import ConfirmationModal from "../../shared/components/ConfirmationModal";
+import ToastNotification from "../../shared/components/ToastNotification";
+import LoadingSkeleton from "../../shared/components/LoadingSkeleton";
+import ChartWrapper from "../../shared/components/ChartWrapper";
 
 const NoticesPage = () => {
   const [notices, setNotices] = useState([]);

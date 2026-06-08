@@ -12,7 +12,7 @@ import {
   Globe,
   Dumbbell,
 } from "lucide-react";
-import { getAttendanceStatus } from "../utils/attendanceHelpers";
+import { getAttendanceStatus } from "../shared/utils/attendanceHelpers";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import HelperPopup from "./HelperPopup";

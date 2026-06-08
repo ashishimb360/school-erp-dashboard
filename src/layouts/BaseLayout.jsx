@@ -6,7 +6,7 @@ import Header from "../components/Header";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import { useStudent } from "../context/StudentContext";
-import { getRouteForNavItem, isNavItemActive } from "../utils/routeHelpers";
+import { getRouteForNavItem, isNavItemActive } from "../shared/utils/routeHelpers";
 
 /**
  * BaseLayout

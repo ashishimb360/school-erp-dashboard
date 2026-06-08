@@ -27,7 +27,7 @@ import MainCard from "../../components/MainCard";
 import { getDataProvider } from "../../data";
 import { getStageFromLevel } from "../../data/academicStages";
 import { getStudentSubjects } from "../../data/subjectArchitecture";
-import { normalizeClassLevel } from "../../utils/classIdentity";
+import { normalizeClassLevel } from "../../shared/utils/classIdentity";
 import OngoingOperationsDashboard from "../../components/admin/academic/examinations/OngoingOperationsDashboard";
 import EvaluationDashboard from "../../components/admin/academic/examinations/evaluation/EvaluationDashboard";
 import PublicationDashboard from "../../components/admin/academic/examinations/publication/PublicationDashboard";

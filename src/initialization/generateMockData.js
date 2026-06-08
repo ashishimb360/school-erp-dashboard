@@ -1,10 +1,10 @@
 import { getItem, setItem } from "../persistence/storage";
 import { STORAGE_KEYS } from "../persistence/storageKeys";
 import { clubsData } from "../data/clubs/clubs";
-import { feesSeed } from "../mockDB/seed/feesSeed";
-import { studentsSeed } from "../mockDB/seed/studentsSeed";
-import { feeStructuresSeed, getFeeStructureForClass } from "../mockDB/seed/feeStructures";
-import { classesSeed } from "../mockDB/seed/classes";
+import { feesSeed } from "../data/mockDB/seed/feesSeed";
+import { studentsSeed } from "../data/mockDB/seed/studentsSeed";
+import { feeStructuresSeed, getFeeStructureForClass } from "../data/mockDB/seed/feeStructures";
+import { classesSeed } from "../data/mockDB/seed/classes";
 
 export const generateMissingMockData = () => {
   // 1. Seed Clubs

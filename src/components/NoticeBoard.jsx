@@ -14,7 +14,7 @@ import {
   Filter,
   ChevronDown,
 } from "lucide-react";
-import { getNoticePriorityStyle } from "../utils/attendanceHelpers";
+import { getNoticePriorityStyle } from "../shared/utils/attendanceHelpers";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import HelperPopup from "./HelperPopup";

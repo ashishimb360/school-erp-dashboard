@@ -32,20 +32,20 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import MainCard from "./components/MainCard";
 import { Users, ShieldCheck } from "lucide-react";
 // Lazy Loaded Pages
-const CoursesPage = lazy(() => import("./pages/CoursesPage"));
-const FacultyPage = lazy(() => import("./pages/FacultyPage"));
-const WeeklyTimetablePage = lazy(() => import("./pages/WeeklyTimetablePage"));
-const ExaminationPage = lazy(() => import("./pages/ExaminationPage"));
-const SchoolCalendarPage = lazy(() => import("./pages/SchoolCalendarPage"));
-const FeeDetailsPage = lazy(() => import("./pages/FeeDetailsPage"));
-const SubjectDetailPage = lazy(() => import("./pages/SubjectDetailPage"));
-const DocumentsPage = lazy(() => import("./pages/DocumentsPage"));
+const CoursesPage = lazy(() => import("./pages/shared/CoursesPage"));
+const FacultyPage = lazy(() => import("./pages/shared/FacultyPage"));
+const WeeklyTimetablePage = lazy(() => import("./pages/shared/WeeklyTimetablePage"));
+const ExaminationPage = lazy(() => import("./pages/shared/ExaminationPage"));
+const SchoolCalendarPage = lazy(() => import("./pages/shared/SchoolCalendarPage"));
+const FeeDetailsPage = lazy(() => import("./pages/shared/FeeDetailsPage"));
+const SubjectDetailPage = lazy(() => import("./pages/shared/SubjectDetailPage"));
+const DocumentsPage = lazy(() => import("./pages/shared/DocumentsPage"));
 const AssignmentsPage = lazy(() => import("./pages/student/AssignmentsPage"));
-const AchievementsPage = lazy(() => import("./pages/AchievementsPage"));
-const MentorSupportPage = lazy(() => import("./pages/MentorSupportPage"));
-const ClubsCommitteesPage = lazy(() => import("./pages/ClubsCommitteesPage"));
-const TransportPage = lazy(() => import("./pages/TransportPage"));
-const StudentProfilePage = lazy(() => import("./pages/StudentProfilePage"));
+const AchievementsPage = lazy(() => import("./pages/shared/AchievementsPage"));
+const MentorSupportPage = lazy(() => import("./pages/shared/MentorSupportPage"));
+const ClubsCommitteesPage = lazy(() => import("./pages/shared/ClubsCommitteesPage"));
+const TransportPage = lazy(() => import("./pages/shared/TransportPage"));
+const StudentProfilePage = lazy(() => import("./pages/shared/StudentProfilePage"));
 const LeavePage = lazy(() => import("./pages/student/LeavePage"));
 
 // Teacher Portal Pages
@@ -132,7 +132,7 @@ const CommunicationCenterPage = lazy(
   () => import("./pages/admin/CommunicationCenterPage"),
 );
 
-import { formatDate } from "./utils/attendanceHelpers";
+import { formatDate } from "./shared/utils/attendanceHelpers";
 import { LanguageProvider, useLanguage } from "./context/LanguageContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -177,9 +177,9 @@ import { useService } from "./hooks/useService";
 
 // Dashboard Aggregation and Skeleton Loaders for High-Performance progressive rendering
 import { studentDashboardService } from "./services/studentService";
-import DashboardCardSkeleton from "./components/common/skeletons/DashboardCardSkeleton";
-import ScheduleSkeleton from "./components/common/skeletons/ScheduleSkeleton";
-import ActionCenterSkeleton from "./components/common/skeletons/ActionCenterSkeleton";
+import DashboardCardSkeleton from "./shared/components/skeletons/DashboardCardSkeleton";
+import ScheduleSkeleton from "./shared/components/skeletons/ScheduleSkeleton";
+import ActionCenterSkeleton from "./shared/components/skeletons/ActionCenterSkeleton";
 
 const LAYOUT_MAP = {
   [ROLES.STUDENT]: StudentLayout,
@@ -1048,3 +1048,6 @@ function App() {
 }
 
 export default App;
+
+
+

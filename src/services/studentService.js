@@ -1,6 +1,6 @@
 import { getDataProvider } from "../data";
 import { getSubjectsForStudent } from "./academicsService";
-import { isSeniorSecondary } from "../utils/classIdentity";
+import { isSeniorSecondary } from "../shared/utils/classIdentity";
 import { getFeeDetails } from "./financeService";
 import { studentTimetableProjectionService } from "./timetable";
 import { getBrandingInfo, getNoticesAndEvents } from "./sharedService";

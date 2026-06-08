@@ -5,7 +5,7 @@
 
 import { getDataProvider } from "../../data";
 import { getChildren } from "../parentService";
-import { timetableSeed } from "../../mockDB/seed/timetable";
+import { timetableSeed } from "../../data/mockDB/seed/timetable";
 
 // ── Validation (always returns clean — no blocking conflicts) ─────────────────
 const validateTimetables = () => [];

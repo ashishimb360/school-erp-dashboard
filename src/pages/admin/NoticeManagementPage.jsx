@@ -7,7 +7,7 @@ import {
   NOTICE_PRIORITIES,
   NOTICE_CATEGORIES,
   AUDIENCE_TYPES,
-} from "../../mockDB/seed/notices";
+} from "../../data/mockDB/seed/notices";
 import { Bell, Filter, Archive, Copy, X, Send, Calendar, Eye, CheckCircle, AlertCircle } from "lucide-react";
 
 const NoticeManagementPage = () => {

@@ -5,7 +5,7 @@
 
 import { getDataProvider } from "../data";
 import { ROLES } from "../auth/roles";
-import { formatClassLevel } from "../utils/classIdentity";
+import { formatClassLevel } from "../shared/utils/classIdentity";
 
 /**
  * Authenticates a user with username and password.

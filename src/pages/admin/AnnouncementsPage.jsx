@@ -4,7 +4,7 @@ import { Megaphone, Plus, Calendar, Bell } from "lucide-react";
 import AdminPageHeader from "../../components/admin/AdminPageHeader";
 import OperationsStatCard from "../../components/admin/operations/OperationsStatCard";
 import AnnouncementBanner from "../../components/admin/institutional/AnnouncementBanner";
-import ActivityFeed from "../../components/shared/ActivityFeed";
+import ActivityFeed from "../../shared/components/ActivityFeed";
 import AdminSectionCard from "../../components/admin/AdminSectionCard";
 import AdminEditForm from "../../components/admin/AdminEditForm";
 import { getDataProvider } from "../../data";

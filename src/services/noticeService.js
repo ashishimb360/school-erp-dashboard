@@ -6,7 +6,7 @@ import {
   AUDIENCE_TYPES,
   DELIVERY_CHANNELS,
   ACTION_TYPES,
-} from "../mockDB/seed/notices";
+} from "../data/mockDB/seed/notices";
 
 /**
  * Fetches all notices

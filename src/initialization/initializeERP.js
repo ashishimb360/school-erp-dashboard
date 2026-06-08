@@ -24,7 +24,7 @@ import {
   subjectsSeed,
   teacherSubjectAssignmentsSeed,
   questionPapersSeed,
-} from "../mockDB";
+} from "../data/mockDB";
 import { ROLES } from "../auth/roles";
 import { generateMissingMockData } from "./generateMockData";
 

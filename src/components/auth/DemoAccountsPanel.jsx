@@ -3,7 +3,7 @@ import { getDemoAccounts } from "../../services/authService";
 import CredentialCard from "./CredentialCard";
 import { ROLES } from "../../auth/roles";
 import { Users, GraduationCap, User, ShieldCheck } from "lucide-react";
-import { extractLevel, extractSection, formatClassLevel } from "../../utils/classIdentity";
+import { extractLevel, extractSection, formatClassLevel } from "../../shared/utils/classIdentity";
 
 const ROLE_CONFIG = {
   [ROLES.STUDENT]: {

@@ -17,9 +17,9 @@ import AdminDataTable from "../../components/admin/AdminDataTable";
 import AdminSectionCard from "../../components/admin/AdminSectionCard";
 
 import AdminEditForm from "../../components/admin/AdminEditForm";
-import ConfirmationModal from "../../components/shared/ConfirmationModal";
-import ToastNotification from "../../components/shared/ToastNotification";
-import LoadingSkeleton from "../../components/shared/LoadingSkeleton";
+import ConfirmationModal from "../../shared/components/ConfirmationModal";
+import ToastNotification from "../../shared/components/ToastNotification";
+import LoadingSkeleton from "../../shared/components/LoadingSkeleton";
 
 import {
   getAllStudents,
@@ -28,7 +28,7 @@ import {
   softDeleteStudent,
   getStudentDependencies,
 } from "../../services/studentService";
-import { formatClassName, isSeniorSecondary } from "../../utils/classIdentity";
+import { formatClassName, isSeniorSecondary } from "../../shared/utils/classIdentity";
 
 const StudentsPage = () => {
   const navigate = useNavigate();

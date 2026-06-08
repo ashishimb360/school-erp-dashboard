@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, ChevronDown, Menu, GraduationCap, User, LogOut, RotateCcw } from "lucide-react";
-import { formatDate } from "../utils/attendanceHelpers";
+import { formatDate } from "../shared/utils/attendanceHelpers";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { useStudent } from "../context/StudentContext";

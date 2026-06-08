@@ -17,11 +17,11 @@ import AdminDataTable from "../../components/admin/AdminDataTable";
 import AdminSectionCard from "../../components/admin/AdminSectionCard";
 import AdminProfilePreview from "../../components/admin/AdminProfilePreview";
 import AdminEditForm from "../../components/admin/AdminEditForm";
-import ConfirmationModal from "../../components/shared/ConfirmationModal";
-import ToastNotification from "../../components/shared/ToastNotification";
-import LoadingSkeleton from "../../components/shared/LoadingSkeleton";
-import ChartWrapper from "../../components/shared/ChartWrapper";
-import ActivityFeed from "../../components/shared/ActivityFeed";
+import ConfirmationModal from "../../shared/components/ConfirmationModal";
+import ToastNotification from "../../shared/components/ToastNotification";
+import LoadingSkeleton from "../../shared/components/LoadingSkeleton";
+import ChartWrapper from "../../shared/components/ChartWrapper";
+import ActivityFeed from "../../shared/components/ActivityFeed";
 import {
   getAllTeachers,
   updateTeacherProfile,

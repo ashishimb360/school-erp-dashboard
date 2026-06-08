@@ -24,8 +24,8 @@ import AttendanceTrendCard from "../../components/admin/analytics/AttendanceTren
 import AcademicSummaryCard from "../../components/admin/analytics/AcademicSummaryCard";
 import WorkloadCard from "../../components/admin/analytics/WorkloadCard";
 
-import ConfirmationModal from "../../components/shared/ConfirmationModal";
-import ToastNotification from "../../components/shared/ToastNotification";
+import ConfirmationModal from "../../shared/components/ConfirmationModal";
+import ToastNotification from "../../shared/components/ToastNotification";
 import { getItem, setItem } from "../../persistence/storage";
 import { STORAGE_KEYS } from "../../persistence/storageKeys";
 

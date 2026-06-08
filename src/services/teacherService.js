@@ -1,6 +1,6 @@
 import { getDataProvider } from "../data";
 import { getClassAttendance, updateClassAttendance } from "./attendanceService";
-import { extractLevel, isFoundationClass } from "../utils/classIdentity";
+import { extractLevel, isFoundationClass } from "../shared/utils/classIdentity";
 import { teacherTimetableService } from "./timetable";
 import { facultyData } from "../data/teachers/faculty";
 import {

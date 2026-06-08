@@ -18,7 +18,7 @@ import {
 import {
   NOTICE_PRIORITIES,
   NOTICE_CATEGORIES,
-} from "../../mockDB/seed/notices";
+} from "../../data/mockDB/seed/notices";
 import { markNoticeRead } from "../../services/noticeService";
 import { useAuth } from "../../context/AuthContext";
 

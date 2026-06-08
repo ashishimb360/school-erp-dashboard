@@ -5,7 +5,7 @@ import AdminSidebar from "../components/admin/AdminSidebar";
 import Header from "../components/Header";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
-import { getRouteForNavItem, isNavItemActive } from "../utils/routeHelpers";
+import { getRouteForNavItem, isNavItemActive } from "../shared/utils/routeHelpers";
 import { ROLES } from "../auth/roles";
 import { ADMIN_SECTIONS } from "../auth/navigation";
 import ProtectedRoute from "../routes/ProtectedRoute";

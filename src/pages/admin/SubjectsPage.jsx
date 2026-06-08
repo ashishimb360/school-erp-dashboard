@@ -8,10 +8,10 @@ import AcademicTable from "../../components/admin/academic/AcademicTable";
 import AdminSectionCard from "../../components/admin/AdminSectionCard";
 import SubjectBadge from "../../components/admin/academic/SubjectBadge";
 import AdminEditForm from "../../components/admin/AdminEditForm";
-import ConfirmationModal from "../../components/shared/ConfirmationModal";
-import ToastNotification from "../../components/shared/ToastNotification";
-import LoadingSkeleton from "../../components/shared/LoadingSkeleton";
-import ChartWrapper from "../../components/shared/ChartWrapper";
+import ConfirmationModal from "../../shared/components/ConfirmationModal";
+import ToastNotification from "../../shared/components/ToastNotification";
+import LoadingSkeleton from "../../shared/components/LoadingSkeleton";
+import ChartWrapper from "../../shared/components/ChartWrapper";
 import { getItem } from "../../persistence/storage";
 import { STORAGE_KEYS } from "../../persistence/storageKeys";
 import {

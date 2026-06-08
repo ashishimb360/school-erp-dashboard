@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import MainCard from "./MainCard";
 import { motion, AnimatePresence } from "framer-motion";
 import { BarChart2, ChevronLeft, ChevronRight, CheckCircle2, XCircle, Clock, Sunset } from "lucide-react";
-import { getAttendanceStatus } from "../utils/attendanceHelpers";
+import { getAttendanceStatus } from "../shared/utils/attendanceHelpers";
 import { useLanguage } from "../context/LanguageContext";
 import { useAuth } from "../context/AuthContext";
 import { getAttendanceSummary, getAttendanceStatusByDate } from "../services/attendanceService";
