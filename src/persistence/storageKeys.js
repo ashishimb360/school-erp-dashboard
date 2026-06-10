@@ -78,6 +78,10 @@ export const STORAGE_KEYS = {
   // Leave
   LEAVE_REQUESTS: "erp_leaveRequests",
 
+  // Support Center
+  SUPPORT_REQUESTS: "erp_supportRequests",
+  SUPPORT_SETTINGS: "erp_supportSettings",
+
   // Schema Versions (for migration safety)
   STUDENTS_SCHEMA_VERSION: "erp_students_schema_version",
   REMARKS_SCHEMA_VERSION: "erp_remarks_schema_version",

@@ -18,6 +18,7 @@ export const ROLE_NAVIGATION = {
     { id: "achievements", icon: "Award" },
     { id: "calendar", icon: "CalendarDays" },
     { id: "leave", icon: "CalendarDays" },
+    { id: "support_center", icon: "LifeBuoy" },
     { id: "profile", icon: "User" },
     { id: "logout", icon: "LogOut" },
   ],
@@ -33,6 +34,7 @@ export const ROLE_NAVIGATION = {
     { id: "documents", icon: "Folder" },
     { id: "achievements", icon: "Award" },
     { id: "leave", icon: "CalendarDays" },
+    { id: "support_center", icon: "LifeBuoy" },
     { id: "profile", icon: "User" },
     { id: "logout", icon: "LogOut" },
   ],
@@ -49,6 +51,7 @@ export const ROLE_NAVIGATION = {
     { id: "mentorship_mgmt", icon: "MessageSquare" },
     { id: "clubs_activities", icon: "Users" },
     { id: "leave_mgmt", icon: "CalendarDays" },
+    { id: "support_center", icon: "LifeBuoy" },
     { id: "profile_settings", icon: "User" },
     { id: "logout", icon: "LogOut" },
   ],
@@ -141,6 +144,8 @@ export const ADMIN_SECTIONS = [
     items: [
       { id: "admin_manage_departments", icon: "Layers" },
       { id: "admin_communication_center", icon: "Send" },
+      { id: "admin_support_management", icon: "MessageSquareWarning" },
+      { id: "support_center", icon: "LifeBuoy" },
     ],
   },
   {

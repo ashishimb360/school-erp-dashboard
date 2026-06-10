@@ -47,6 +47,7 @@ const ClubsCommitteesPage = lazy(() => import("./pages/shared/ClubsCommitteesPag
 const TransportPage = lazy(() => import("./pages/shared/TransportPage"));
 const StudentProfilePage = lazy(() => import("./pages/shared/StudentProfilePage"));
 const LeavePage = lazy(() => import("./pages/student/LeavePage"));
+const SupportCenterPage = lazy(() => import("./pages/shared/SupportCenterPage"));
 
 // Teacher Portal Pages
 const TeacherDashboard = lazy(() => import("./pages/teacher/TeacherDashboard"));
@@ -125,6 +126,7 @@ const WorkloadAnalyticsPage = lazy(
   () => import("./pages/admin/WorkloadAnalyticsPage"),
 );
 const AdminProfilePage = lazy(() => import("./pages/admin/AdminProfilePage"));
+const SupportManagementPage = lazy(() => import("./pages/admin/SupportManagementPage"));
 const ManageDepartmentsPage = lazy(
   () => import("./pages/admin/ManageDepartmentsPage"),
 );
@@ -653,6 +655,9 @@ function AppContent() {
         case "profile":
           navigate(`/${role?.toLowerCase()}/profile`);
           break;
+        case "support_center":
+          navigate(`/${role?.toLowerCase()}/support`);
+          break;
         default:
           navigate(`/${role?.toLowerCase()}/dashboard`);
       }
@@ -760,6 +765,7 @@ function AppContent() {
         />
         <Route path="faculty" element={<LazyRoute Component={FacultyPage} />} />
         <Route path="leave" element={<LazyRoute Component={LeavePage} />} />
+        <Route path="support" element={<LazyRoute Component={SupportCenterPage} />} />
       </Route>
 
       {/* Parent Portal Routes */}
@@ -835,6 +841,7 @@ function AppContent() {
         />
         <Route path="faculty" element={<LazyRoute Component={FacultyPage} />} />
         <Route path="leave" element={<LazyRoute Component={LeavePage} />} />
+        <Route path="support" element={<LazyRoute Component={SupportCenterPage} />} />
       </Route>
 
       {/* Teacher Portal Routes */}
@@ -900,6 +907,7 @@ function AppContent() {
           path="leaves"
           element={<LazyRoute Component={TeacherLeavePage} />}
         />
+        <Route path="support" element={<LazyRoute Component={SupportCenterPage} />} />
       </Route>
 
       {/* Admin Portal Routes */}
@@ -1019,6 +1027,8 @@ function AppContent() {
           path="communication-center"
           element={<LazyRoute Component={CommunicationCenterPage} />}
         />
+        <Route path="support" element={<LazyRoute Component={SupportCenterPage} />} />
+        <Route path="support-management" element={<LazyRoute Component={SupportManagementPage} />} />
         <Route
           path="school-settings"
           element={

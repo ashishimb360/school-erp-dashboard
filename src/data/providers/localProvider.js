@@ -1515,6 +1515,351 @@ const localProvider = {
     setItem(STORAGE_KEYS.APPROVAL_SETTINGS, settings);
     return settings.find((s) => s.module === moduleName);
   },
+
+  // === SUPPORT SETTINGS ===
+  getSupportSettings: async () => {
+    let settings = getItem(STORAGE_KEYS.SUPPORT_SETTINGS) || [];
+    if (settings.length === 0) {
+      settings = [
+        { module: "support_center", handlerEmployeeId: "EMP-001" }
+      ];
+      setItem(STORAGE_KEYS.SUPPORT_SETTINGS, settings);
+    }
+    return settings.find(s => s.module === "support_center") || { module: "support_center", handlerEmployeeId: "EMP-001" };
+  },
+
+  updateSupportSetting: async (moduleName, updates) => {
+    let settings = getItem(STORAGE_KEYS.SUPPORT_SETTINGS) || [];
+    const idx = settings.findIndex((s) => s.module === moduleName);
+    if (idx === -1) {
+      settings.push({ module: moduleName, ...updates });
+    } else {
+      settings[idx] = { ...settings[idx], ...updates };
+    }
+    setItem(STORAGE_KEYS.SUPPORT_SETTINGS, settings);
+    return settings.find((s) => s.module === moduleName);
+  },
+
+  // === SUPPORT CENTER DATA ===
+  _initializeSupportRequests: async () => {
+    let requests = getItem(STORAGE_KEYS.SUPPORT_REQUESTS);
+    // If requests exist and have remarks array (indicating Phase 2 schema), don't re-seed
+    if (requests && requests.length > 0 && requests[0].remarks !== undefined) return;
+
+    const students = getItem(STORAGE_KEYS.STUDENTS) || [];
+    const teachers = getItem(STORAGE_KEYS.TEACHERS) || [];
+    const parents = getItem(STORAGE_KEYS.PARENTS) || [];
+    const employees = getItem(STORAGE_KEYS.EMPLOYEES) || [];
+
+    const seedData = [
+      {
+        id: `req-${Date.now()}-1`,
+        requesterType: "Student",
+        requesterId: students[0]?.id || "stud-001",
+        requesterName: students[0]?.name || "Student 1",
+        category: "Help Request",
+        title: "Unable to access assignments",
+        description: "I am getting an error when I try to open the latest math assignment.",
+        priority: "High",
+        anonymous: false,
+        status: "Open",
+        remarks: [],
+        createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+        updatedAt: new Date(Date.now() - 86400000 * 2).toISOString()
+      },
+      {
+        id: `req-${Date.now()}-2`,
+        requesterType: "Parent",
+        requesterId: parents[0]?.id || "par-001",
+        requesterName: parents[0]?.name || "Parent 1",
+        category: "Transport Issue",
+        title: "Bus consistently arriving late",
+        description: "The morning bus has been 15 minutes late for the past week.",
+        priority: "High",
+        anonymous: false,
+        status: "In Review",
+        remarks: [
+          {
+            id: `rmk-${Date.now()}-1`,
+            message: "Transport coordinator contacted. Waiting for reply.",
+            createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
+            createdBy: employees[0]?.employeeId || "EMP-001"
+          }
+        ],
+        createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+        updatedAt: new Date(Date.now() - 86400000 * 1).toISOString()
+      },
+      {
+        id: `req-${Date.now()}-3`,
+        requesterType: "Teacher",
+        requesterId: teachers[0]?.id || "teach-001",
+        requesterName: teachers[0]?.name || "Teacher 1",
+        category: "Complaint",
+        title: "Smartboard not working in Room 102",
+        description: "The interactive display is not turning on. Needed for my afternoon classes.",
+        priority: "High",
+        anonymous: true,
+        complaintAgainstType: "System",
+        complaintAgainstId: "RM-102",
+        status: "Resolved",
+        remarks: [
+          {
+            id: `rmk-${Date.now()}-2`,
+            message: "IT team dispatched to fix the display.",
+            createdAt: new Date(Date.now() - 86400000 * 9).toISOString(),
+            createdBy: employees[0]?.employeeId || "EMP-001"
+          },
+          {
+            id: `rmk-${Date.now()}-3`,
+            message: "Issue resolved. Loose cable reconnected.",
+            createdAt: new Date(Date.now() - 86400000 * 8).toISOString(),
+            createdBy: employees[1]?.employeeId || "EMP-002"
+          }
+        ],
+        createdAt: new Date(Date.now() - 86400000 * 10).toISOString(),
+        updatedAt: new Date(Date.now() - 86400000 * 8).toISOString()
+      },
+      {
+        id: `req-${Date.now()}-4`,
+        requesterType: "Employee",
+        requesterId: employees[0]?.employeeId || "emp-001",
+        requesterName: employees[0]?.employeeName || "Employee 1",
+        category: "Suggestion",
+        title: "Improve cafeteria seating",
+        description: "Adding more tables to the staff cafeteria would be great.",
+        priority: "Low",
+        anonymous: false,
+        status: "Closed",
+        remarks: [
+          {
+            id: `rmk-${Date.now()}-4`,
+            message: "Suggestion noted. Will consider in next quarter budget.",
+            createdAt: new Date(Date.now() - 86400000 * 20).toISOString(),
+            createdBy: employees[0]?.employeeId || "EMP-001"
+          }
+        ],
+        createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
+        updatedAt: new Date(Date.now() - 86400000 * 20).toISOString()
+      },
+      {
+        id: `req-${Date.now()}-5`,
+        requesterType: "Student",
+        requesterId: students[1]?.id || "stud-002",
+        requesterName: students[1]?.name || "Student 2",
+        category: "Academic Issue",
+        title: "Request for extra classes in Chemistry",
+        description: "Many students in 10-A are struggling with Organic Chemistry.",
+        priority: "Medium",
+        anonymous: false,
+        status: "Open",
+        remarks: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: `req-${Date.now()}-6`,
+        requesterType: "Parent",
+        requesterId: parents[1]?.id || "par-002",
+        requesterName: parents[1]?.name || "Parent 2",
+        category: "Fee Issue",
+        title: "Discrepancy in Q2 invoice",
+        description: "I was charged for transport but my child uses private vehicle.",
+        priority: "High",
+        anonymous: false,
+        status: "In Review",
+        remarks: [
+          {
+            id: `rmk-${Date.now()}-5`,
+            message: "Checking with the finance department.",
+            createdAt: new Date().toISOString(),
+            createdBy: employees[1]?.employeeId || "EMP-002"
+          }
+        ],
+        createdAt: new Date(Date.now() - 86400000).toISOString(),
+        updatedAt: new Date(Date.now() - 86400000).toISOString()
+      },
+      {
+        id: `req-${Date.now()}-7`,
+        requesterType: "Teacher",
+        requesterId: teachers[1]?.id || "teach-002",
+        requesterName: teachers[1]?.name || "Teacher 2",
+        category: "Technical Support",
+        title: "ERP Login Issue for some students",
+        description: "A few students reported they cannot log into their portal.",
+        priority: "High",
+        anonymous: false,
+        status: "Resolved",
+        remarks: [
+          {
+            id: `rmk-${Date.now()}-6`,
+            message: "System cache cleared. Login restored.",
+            createdAt: new Date().toISOString(),
+            createdBy: employees[0]?.employeeId || "EMP-001"
+          }
+        ],
+        createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+        updatedAt: new Date().toISOString()
+      },
+      {
+        id: `req-${Date.now()}-8`,
+        requesterType: "Student",
+        requesterId: students[2]?.id || "stud-003",
+        requesterName: students[2]?.name || "Student 3",
+        category: "Complaint",
+        title: "Noise in library during study hours",
+        description: "Junior students are making noise during senior study hours.",
+        priority: "Medium",
+        anonymous: true,
+        complaintAgainstType: "Student",
+        complaintAgainstId: "Junior Students",
+        status: "In Review",
+        remarks: [],
+        createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+        updatedAt: new Date(Date.now() - 86400000 * 2).toISOString()
+      },
+      {
+        id: `req-${Date.now()}-9`,
+        requesterType: "Parent",
+        requesterId: parents[0]?.id || "par-001",
+        requesterName: parents[0]?.name || "Parent 1",
+        category: "Feedback",
+        title: "Great annual function",
+        description: "We really enjoyed the cultural events this year.",
+        priority: "Low",
+        anonymous: false,
+        status: "Closed",
+        remarks: [
+          {
+            id: `rmk-${Date.now()}-7`,
+            message: "Thank you for the wonderful feedback!",
+            createdAt: new Date(Date.now() - 86400000 * 59).toISOString(),
+            createdBy: employees[0]?.employeeId || "EMP-001"
+          }
+        ],
+        createdAt: new Date(Date.now() - 86400000 * 60).toISOString(),
+        updatedAt: new Date(Date.now() - 86400000 * 59).toISOString()
+      },
+      {
+        id: `req-${Date.now()}-10`,
+        requesterType: "Employee",
+        requesterId: employees[1]?.employeeId || "emp-002",
+        requesterName: employees[1]?.employeeName || "Employee 2",
+        category: "Technical Support",
+        title: "Printer not working in Admin Block",
+        description: "The main printer is out of ink and shows a drum error.",
+        priority: "Medium",
+        anonymous: false,
+        status: "Resolved",
+        remarks: [
+          {
+            id: `rmk-${Date.now()}-8`,
+            message: "Ink replaced and drum cleaned.",
+            createdAt: new Date(Date.now() - 86400000 * 14).toISOString(),
+            createdBy: employees[0]?.employeeId || "EMP-001"
+          }
+        ],
+        createdAt: new Date(Date.now() - 86400000 * 15).toISOString(),
+        updatedAt: new Date(Date.now() - 86400000 * 14).toISOString()
+      },
+      {
+        id: `req-${Date.now()}-11`,
+        requesterType: "Student",
+        requesterId: students[0]?.id || "stud-001",
+        requesterName: students[0]?.name || "Student 1",
+        category: "Bug Report",
+        title: "Mobile app crashing",
+        description: "The app crashes when I try to view my attendance history.",
+        priority: "Medium",
+        anonymous: false,
+        status: "Closed",
+        remarks: [
+          {
+            id: `rmk-${Date.now()}-9`,
+            message: "Bug fixed in version 2.1.0.",
+            createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
+            createdBy: employees[1]?.employeeId || "EMP-002"
+          }
+        ],
+        createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
+        updatedAt: new Date(Date.now() - 86400000 * 1).toISOString()
+      },
+      {
+        id: `req-${Date.now()}-12`,
+        requesterType: "Teacher",
+        requesterId: teachers[2]?.id || "teach-003",
+        requesterName: teachers[2]?.name || "Teacher 3",
+        category: "Academic Issue",
+        title: "Need updated syllabus copies",
+        description: "Please provide the updated syllabus copies for term 2.",
+        priority: "Medium",
+        anonymous: false,
+        status: "Open",
+        remarks: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ];
+
+    setItem(STORAGE_KEYS.SUPPORT_REQUESTS, seedData);
+  },
+
+  getAllSupportRequests: async () => {
+    await localProvider._initializeSupportRequests();
+    return getItem(STORAGE_KEYS.SUPPORT_REQUESTS) || [];
+  },
+
+  getSupportRequests: async () => {
+    await localProvider._initializeSupportRequests();
+    return getItem(STORAGE_KEYS.SUPPORT_REQUESTS) || [];
+  },
+
+  createSupportRequest: async (data) => {
+    await localProvider._initializeSupportRequests();
+    const requests = getItem(STORAGE_KEYS.SUPPORT_REQUESTS) || [];
+    const newRequest = {
+      id: `req-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      ...data,
+      status: data.status || "Open",
+      priority: data.priority || "Medium",
+      remarks: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    requests.push(newRequest);
+    setItem(STORAGE_KEYS.SUPPORT_REQUESTS, requests);
+    return newRequest;
+  },
+
+  updateSupportRequest: async (id, updates) => {
+    await localProvider._initializeSupportRequests();
+    const requests = getItem(STORAGE_KEYS.SUPPORT_REQUESTS) || [];
+    const idx = requests.findIndex(r => r.id === id);
+    if (idx === -1) throw new Error("Support request not found");
+    
+    requests[idx] = { ...requests[idx], ...updates, updatedAt: new Date().toISOString() };
+    setItem(STORAGE_KEYS.SUPPORT_REQUESTS, requests);
+    return requests[idx];
+  },
+
+  addSupportRemark: async (id, remark) => {
+    await localProvider._initializeSupportRequests();
+    const requests = getItem(STORAGE_KEYS.SUPPORT_REQUESTS) || [];
+    const idx = requests.findIndex(r => r.id === id);
+    if (idx === -1) throw new Error("Support request not found");
+    
+    const newRemark = {
+      id: `rmk-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      ...remark,
+      createdAt: new Date().toISOString()
+    };
+
+    if (!requests[idx].remarks) requests[idx].remarks = [];
+    requests[idx].remarks.push(newRemark);
+    requests[idx].updatedAt = new Date().toISOString();
+    
+    setItem(STORAGE_KEYS.SUPPORT_REQUESTS, requests);
+    return requests[idx];
+  },
 };
 
 export default localProvider;

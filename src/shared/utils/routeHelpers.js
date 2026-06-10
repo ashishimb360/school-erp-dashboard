@@ -36,6 +36,8 @@ export function getRouteForNavItem(id, role) {
         return "/student/profile";
       case "leave":
         return "/student/leave";
+      case "support_center":
+        return "/student/support";
       default:
         return "/student/dashboard";
     }
@@ -68,6 +70,8 @@ export function getRouteForNavItem(id, role) {
         return "/parent/profile";
       case "leave":
         return "/parent/leave";
+      case "support_center":
+        return "/parent/support";
       default:
         return "/parent/dashboard";
     }
@@ -102,6 +106,8 @@ export function getRouteForNavItem(id, role) {
         return "/teacher/profile-settings";
       case "leave_mgmt":
         return "/teacher/leave-management";
+      case "support_center":
+        return "/teacher/support";
       default:
         return "/teacher/dashboard";
     }
@@ -162,6 +168,10 @@ export function getRouteForNavItem(id, role) {
         return "/admin/profile";
       case "admin_school_settings":
         return "/admin/school-settings";
+      case "admin_support_management":
+        return "/admin/support-management";
+      case "support_center":
+        return "/admin/support";
       default:
         return "/admin/dashboard";
     }
